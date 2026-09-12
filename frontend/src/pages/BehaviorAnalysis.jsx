@@ -147,7 +147,14 @@ function buildPlotConfig(filename = 'tendencia-cadmio') {
     responsive: true,
     displayModeBar: true,
     displaylogo: false,
-    modeBarButtonsToRemove: ['lasso2d', 'select2d', 'autoScale2d'],
+    modeBarButtonsToRemove: [
+      'lasso2d',
+      'select2d',
+      'autoScale2d',
+      'toggleSpikelines',
+      'hoverClosestCartesian',
+      'hoverCompareCartesian',
+    ],
     toImageButtonOptions: {
       format: 'png',
       filename,
@@ -155,6 +162,7 @@ function buildPlotConfig(filename = 'tendencia-cadmio') {
       width: 1280,
       scale: 2,
     },
+    locale: 'es',
   }
 }
 
@@ -345,7 +353,6 @@ export default function BehaviorAnalysis() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-start gap-4">
         <button
           type="button"
@@ -370,10 +377,9 @@ export default function BehaviorAnalysis() {
         </div>
       </div>
 
-      {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {[
-          { label: 'Muestras', value: st.n, icon: TrendingUp },
+          { label: 'Muestras', value: st.n },
           { label: 'Promedio', value: st.avg != null ? `${st.avg}` : '—' },
           { label: 'Mínimo', value: st.min != null ? `${st.min}` : '—' },
           { label: 'Máximo', value: st.max != null ? `${st.max}` : '—' },
@@ -396,7 +402,6 @@ export default function BehaviorAnalysis() {
         </div>
       ) : (
         <>
-          {/* ── Tendencia ── */}
           <div className="card p-5 chart-card">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
@@ -425,15 +430,16 @@ export default function BehaviorAnalysis() {
                     color: series.map((s) =>
                       s.value > thr ? theme.colors.danger : theme.colors.primary
                     ),
-                    size: 9,
-                    line: { color: theme.dark ? '#1a1a1c' : '#ffffff', width: 2 },
+                    size: 10,
+                    line: { color: theme.dark ? '#1a1a1c' : '#ffffff', width: 2.5 },
                     symbol: 'circle',
+                    opacity: 0.95,
                   },
                   line: {
                     color: theme.colors.primary,
-                    width: 2.8,
+                    width: 3,
                     shape: 'spline',
-                    smoothing: 0.55,
+                    smoothing: 0.6,
                   },
                   hovertemplate:
                     '<b>%{text}</b><br>Fecha: %{x}<br>Cd: <b>%{y:.3f}</b> mg/kg<br>%{customdata}<extra></extra>',
@@ -475,7 +481,6 @@ export default function BehaviorAnalysis() {
             />
           </div>
 
-          {/* ── Barras por lote/guía ── */}
           <div className="card p-5 chart-card">
             <div className="flex items-center gap-2 mb-1">
               <BarChart3 className="w-4 h-4 text-primary-500" />
@@ -493,9 +498,9 @@ export default function BehaviorAnalysis() {
                     color: series.map((s) =>
                       s.value > thr ? theme.colors.danger : theme.colors.primary
                     ),
-                    opacity: 0.9,
+                    opacity: 0.92,
                     line: { width: 0 },
-                    cornerradius: 4,
+                    cornerradius: 6,
                   },
                   customdata: series.map((s) => s.secondary || ''),
                   hovertemplate:
@@ -532,7 +537,6 @@ export default function BehaviorAnalysis() {
             />
           </div>
 
-          {/* ── Por origen ── */}
           {byOrigin.length > 0 && (
             <div className="card p-5 chart-card">
               <div className="flex items-center gap-2 mb-1">
@@ -553,11 +557,11 @@ export default function BehaviorAnalysis() {
                       color: byOrigin.map((o) =>
                         o.avg > thr ? theme.colors.danger : theme.colors.success
                       ),
-                      opacity: 0.9,
-                      cornerradius: 4,
+                      opacity: 0.92,
+                      cornerradius: 6,
                     },
                     hovertemplate:
-                      '<b>%{y}</b><br>Promedio: <b>%{x:.3f}</b> mg/kg<br>n=%{customdata}<extra></extra>',
+                      '<b>%{y}</b><br>Promedio: <b>%{x:.3f}</b> mg/kg<br>%{customdata} muestras<extra></extra>',
                   },
                 ]}
                 layout={{
