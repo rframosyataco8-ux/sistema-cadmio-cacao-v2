@@ -4,7 +4,7 @@ import { authApi } from '../lib/api'
 import { Leaf } from 'lucide-react'
 
 export default function Login({ onLogin }) {
-  const [email, setEmail] = useState('admin@cadmio.local')
+  const [email, setEmail] = useState('admin@cadmio.com')
   const [password, setPassword] = useState('admin123')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -64,7 +64,7 @@ export default function Login({ onLogin }) {
             {loading ? 'Ingresando...' : 'Ingresar'}
           </button>
         </form>
-        <p className="text-xs text-gray-400 text-center mt-6">admin@cadmio.local / admin123</p>
+        <p className="text-xs text-gray-400 text-center mt-6">admin@cadmio.com / admin123</p>
       </div>
     </div>
   )
