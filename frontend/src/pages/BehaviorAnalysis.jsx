@@ -35,7 +35,7 @@ function useChartTheme() {
       paper_bgcolor: 'rgba(0,0,0,0)',
       plot_bgcolor: dark ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0)',
       font: { family: 'Roboto, system-ui, sans-serif', size: 12, color: text },
-      margin: { t: 40, r: 28, b: 88, l: 64 },
+      margin: { t: 48, r: 16, b: 88, l: 64 },
       dragmode: 'zoom',
       xaxis: {
         gridcolor: grid, zeroline: false, linecolor: grid,
@@ -114,6 +114,8 @@ function buildPlotConfig(filename = 'tendencia-cadmio') {
       'toggleSpikelines',
       'hoverClosestCartesian',
       'hoverCompareCartesian',
+      'zoomIn2d',
+      'zoomOut2d',
     ],
     toImageButtonOptions: {
       format: 'png',
@@ -139,56 +141,27 @@ export default function BehaviorAnalysis() {
     const s = document.createElement('style')
     s.id = id
     s.textContent = `
+      .js-plotly-plot .modebar-container { top: 6px !important; right: 8px !important; z-index: 20 !important; }
       .js-plotly-plot .modebar {
-        background: linear-gradient(165deg,#fff,#f8fafc) !important;
-        border: 1px solid rgba(15,23,42,.1) !important;
-        border-radius: 9999px !important;
-        padding: 4px 6px !important;
-        box-shadow: 0 2px 8px rgba(15,23,42,.08), 0 8px 24px rgba(15,23,42,.06) !important;
-        display: flex !important;
-        align-items: center !important;
+        background: #fff !important; border: 1px solid #e5e7eb !important;
+        border-radius: 10px !important; padding: 3px 4px !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,.06) !important;
+        display: flex !important; align-items: center !important;
       }
-      .js-plotly-plot .modebar-group {
-        background: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-        display: flex !important;
-        gap: 1px !important;
-      }
-      .js-plotly-plot .modebar-group + .modebar-group {
-        border-left: 1px solid rgba(15,23,42,.1) !important;
-        margin-left: 3px !important;
-        padding-left: 5px !important;
-      }
+      .js-plotly-plot .modebar-group { background: transparent !important; border: none !important; box-shadow: none !important; display: flex !important; }
+      .js-plotly-plot .modebar-group + .modebar-group { border-left: 1px solid #e5e7eb !important; margin-left: 2px !important; padding-left: 3px !important; }
       .js-plotly-plot a.modebar-btn {
-        width: 32px !important; height: 32px !important;
-        min-width: 32px !important; min-height: 32px !important;
-        border-radius: 9999px !important;
-        background: transparent !important;
-        background-color: transparent !important;
-        padding: 0 !important;
-        margin: 0 1px !important;
-        border: none !important;
-        box-shadow: none !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
+        width: 28px !important; height: 28px !important; min-width: 28px !important; min-height: 28px !important;
+        border-radius: 7px !important; background: transparent !important; background-color: transparent !important;
+        padding: 0 !important; margin: 0 !important; border: none !important; box-shadow: none !important;
+        display: inline-flex !important; align-items: center !important; justify-content: center !important;
       }
-      .js-plotly-plot a.modebar-btn:hover {
-        background: rgba(26,115,232,.12) !important;
-        background-color: rgba(26,115,232,.12) !important;
-      }
-      .js-plotly-plot a.modebar-btn.active {
-        background: rgba(26,115,232,.16) !important;
-        background-color: rgba(26,115,232,.16) !important;
-      }
-      .js-plotly-plot a.modebar-btn path { fill: #64748b !important; }
+      .js-plotly-plot a.modebar-btn:hover { background: #f3f4f6 !important; background-color: #f3f4f6 !important; }
+      .js-plotly-plot a.modebar-btn.active { background: #e8f0fe !important; background-color: #e8f0fe !important; }
+      .js-plotly-plot a.modebar-btn path { fill: #6b7280 !important; }
       .js-plotly-plot a.modebar-btn:hover path,
       .js-plotly-plot a.modebar-btn.active path { fill: #1a73e8 !important; }
       .js-plotly-plot a.modebar-btn--logo { display: none !important; }
-      .js-plotly-plot .modebar-container {
-        top: 8px !important; right: 10px !important; z-index: 50 !important;
-      }
     `
     document.head.appendChild(s)
   }, [])
@@ -437,7 +410,7 @@ export default function BehaviorAnalysis() {
                 layout={{
                   ...theme.layout,
                   height: Math.max(320, byOrigin.length * 42 + 100),
-                  margin: { t: 40, r: 36, b: 52, l: 140 }, bargap: 0.32,
+                  margin: { t: 48, r: 24, b: 52, l: 140 }, bargap: 0.32,
                   xaxis: { ...theme.layout.xaxis, title: { text: 'Cd promedio (mg/kg)', font: { color: theme.colors.softText, size: 12 } } },
                   yaxis: { ...theme.layout.yaxis, title: undefined, automargin: true, tickfont: { size: 11, color: theme.colors.softText } },
                   shapes: [{ type: 'line', yref: 'paper', y0: 0, y1: 1, x0: thr, x1: thr,
