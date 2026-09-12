@@ -11,10 +11,13 @@ from app.api import auth, catalog, lots, samples, analytics
 def seed_admin():
     db = SessionLocal()
     try:
-        admin = db.query(User).filter(User.email == "admin@cadmio.local").first()
+        # Acepta ambos emails por compatibilidad
+        admin = db.query(User).filter(
+            (User.email == "admin@cadmio.com") | (User.email == "admin@cadmio.local")
+        ).first()
         if not admin:
             admin = User(
-                email="admin@cadmio.local",
+                email="admin@cadmio.com",
                 full_name="Administrador",
                 hashed_password=get_password_hash("admin123"),
                 role=UserRole.ADMIN,
@@ -22,7 +25,12 @@ def seed_admin():
             )
             db.add(admin)
             db.commit()
-            print("Usuario admin creado: admin@cadmio.local / admin123")
+            print("Usuario admin creado: admin@cadmio.com / admin123")
+        elif admin.email == "admin@cadmio.local":
+            # Migrar email antiguo
+            admin.email = "admin@cadmio.com"
+            db.commit()
+            print("Admin migrado a admin@cadmio.com")
     finally:
         db.close()
 
