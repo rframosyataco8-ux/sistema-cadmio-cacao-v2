@@ -133,6 +133,66 @@ export default function BehaviorAnalysis() {
   const theme = useChartTheme()
   const thr = threshold()
 
+  useEffect(() => {
+    const id = 'modebar-style-boost'
+    if (document.getElementById(id)) return
+    const s = document.createElement('style')
+    s.id = id
+    s.textContent = `
+      .js-plotly-plot .modebar {
+        background: linear-gradient(165deg,#fff,#f8fafc) !important;
+        border: 1px solid rgba(15,23,42,.1) !important;
+        border-radius: 9999px !important;
+        padding: 4px 6px !important;
+        box-shadow: 0 2px 8px rgba(15,23,42,.08), 0 8px 24px rgba(15,23,42,.06) !important;
+        display: flex !important;
+        align-items: center !important;
+      }
+      .js-plotly-plot .modebar-group {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        display: flex !important;
+        gap: 1px !important;
+      }
+      .js-plotly-plot .modebar-group + .modebar-group {
+        border-left: 1px solid rgba(15,23,42,.1) !important;
+        margin-left: 3px !important;
+        padding-left: 5px !important;
+      }
+      .js-plotly-plot a.modebar-btn {
+        width: 32px !important; height: 32px !important;
+        min-width: 32px !important; min-height: 32px !important;
+        border-radius: 9999px !important;
+        background: transparent !important;
+        background-color: transparent !important;
+        padding: 0 !important;
+        margin: 0 1px !important;
+        border: none !important;
+        box-shadow: none !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+      }
+      .js-plotly-plot a.modebar-btn:hover {
+        background: rgba(26,115,232,.12) !important;
+        background-color: rgba(26,115,232,.12) !important;
+      }
+      .js-plotly-plot a.modebar-btn.active {
+        background: rgba(26,115,232,.16) !important;
+        background-color: rgba(26,115,232,.16) !important;
+      }
+      .js-plotly-plot a.modebar-btn path { fill: #64748b !important; }
+      .js-plotly-plot a.modebar-btn:hover path,
+      .js-plotly-plot a.modebar-btn.active path { fill: #1a73e8 !important; }
+      .js-plotly-plot a.modebar-btn--logo { display: none !important; }
+      .js-plotly-plot .modebar-container {
+        top: 8px !important; right: 10px !important; z-index: 50 !important;
+      }
+    `
+    document.head.appendChild(s)
+  }, [])
+
   const allowedProducts = useMemo(() => PRODUCTS.filter((p) => canSeeProduct(p.key)), [])
   const current = allowedProducts.find((t) => t.key === selected) || null
 
