@@ -51,6 +51,18 @@ class SampleLotOut(BaseModel):
         from_attributes = True
 
 
+class SampleGrainUpdate(BaseModel):
+    origin_id: int | None = None
+    guia_code: str | None = None
+    cadmium_mg_kg: float | None = None
+    has_sample: bool | None = None
+    sample_weight_g: float | None = None
+    observation: str | None = None
+    analysis_date: date | None = None
+    send_date: date | None = None
+    is_organic: bool | None = None
+
+
 class SampleGrainCreate(BaseModel):
     origin_id: int
     guia_code: str
