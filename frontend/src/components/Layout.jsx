@@ -1,6 +1,19 @@
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
-import { useState } from 'react'
-import { LayoutDashboard, Beaker, Package, LogOut, Leaf, ChevronDown, Table2, LineChart } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import {
+  LayoutDashboard,
+  Beaker,
+  Package,
+  LogOut,
+  Leaf,
+  ChevronDown,
+  Table2,
+  LineChart,
+  Settings,
+  HelpCircle,
+  User,
+  Info,
+} from 'lucide-react'
 
 export default function Layout({ user, setUser }) {
   const navigate = useNavigate()
@@ -8,6 +21,16 @@ export default function Layout({ user, setUser }) {
   const analysisOpen =
     location.pathname.startsWith('/samples') || location.pathname.startsWith('/analisis')
   const [open, setOpen] = useState(analysisOpen)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef(null)
+
+  useEffect(() => {
+    const onClick = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', onClick)
+    return () => document.removeEventListener('mousedown', onClick)
+  }, [])
 
   const logout = () => {
     localStorage.removeItem('token')
@@ -23,12 +46,22 @@ export default function Layout({ user, setUser }) {
 
   const subLinkClass = ({ isActive }) =>
     `flex items-center gap-2 pl-11 pr-3 py-2 rounded-lg text-sm transition-colors ${
-      isActive ? 'bg-primary-50 text-primary-600 font-medium' : 'text-gray-500 hover:bg-surface-100 hover:text-gray-700'
+      isActive
+        ? 'bg-primary-50 text-primary-600 font-medium'
+        : 'text-gray-500 hover:bg-surface-100 hover:text-gray-700'
     }`
+
+  const displayName = user?.full_name || user?.email || 'Usuario'
+  const initials = (displayName || 'U')
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
 
   return (
     <div className="min-h-screen flex bg-surface-50">
-      <aside className="w-64 bg-white border-r border-surface-200 flex flex-col fixed h-full">
+      <aside className="w-64 bg-white border-r border-surface-200 flex flex-col fixed h-full z-20">
         <div className="px-5 py-6 flex items-center gap-3 border-b border-surface-200">
           <div className="w-10 h-10 rounded-xl bg-primary-500 flex items-center justify-center">
             <Leaf className="w-5 h-5 text-white" />
@@ -45,7 +78,6 @@ export default function Layout({ user, setUser }) {
             Dashboard
           </NavLink>
 
-          {/* Análisis Producto — desplegable */}
           <div>
             <button
               type="button"
@@ -78,10 +110,91 @@ export default function Layout({ user, setUser }) {
           </NavLink>
         </nav>
 
-        <div className="p-4 border-t border-surface-200">
-          <div className="text-xs text-gray-500 mb-2 truncate">{user?.email}</div>
-          <button onClick={logout} className="btn-ghost w-full flex items-center gap-2 text-sm">
-            <LogOut className="w-4 h-4" /> Cerrar sesión
+        {/* Menú de usuario */}
+        <div className="p-3 border-t border-surface-200 relative" ref={menuRef}>
+          {menuOpen && (
+            <div className="absolute bottom-full left-3 right-3 mb-2 bg-white border border-surface-200 rounded-xl shadow-lg overflow-hidden z-30">
+              <div className="px-4 py-3 border-b border-surface-100">
+                <p className="text-sm font-medium text-gray-900 truncate">{displayName}</p>
+                <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                {user?.role && (
+                  <span className="inline-block mt-1 text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-surface-100 text-gray-600">
+                    {user.role}
+                  </span>
+                )}
+              </div>
+              <div className="py-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false)
+                    navigate('/configuracion')
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-surface-50"
+                >
+                  <Settings className="w-4 h-4 text-gray-500" />
+                  Configuración
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false)
+                    navigate('/configuracion?tab=cuenta')
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-surface-50"
+                >
+                  <User className="w-4 h-4 text-gray-500" />
+                  Mi cuenta
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false)
+                    navigate('/ayuda')
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-surface-50"
+                >
+                  <HelpCircle className="w-4 h-4 text-gray-500" />
+                  Ayuda
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false)
+                    navigate('/acerca')
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-surface-50"
+                >
+                  <Info className="w-4 h-4 text-gray-500" />
+                  Acerca del sistema
+                </button>
+              </div>
+              <div className="border-t border-surface-100 py-1">
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Cerrar sesión
+                </button>
+              </div>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setMenuOpen((v) => !v)}
+            className="w-full flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-surface-100 transition-colors text-left"
+          >
+            <div className="w-9 h-9 rounded-full bg-primary-500 text-white flex items-center justify-center text-xs font-medium shrink-0">
+              {initials}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-gray-900 truncate">{displayName}</p>
+              <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+            </div>
+            <ChevronDown className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
           </button>
         </div>
       </aside>
