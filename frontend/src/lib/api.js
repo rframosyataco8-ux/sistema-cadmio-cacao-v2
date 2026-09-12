@@ -58,6 +58,7 @@ export const lotsApi = {
 export const samplesApi = {
   listLot: (params) => api.get('/samples/lot', { params }),
   createLot: (data) => api.post('/samples/lot', data),
+  updateLot: (id, data) => api.patch(`/samples/lot/${id}`, data),
   listGrain: (params) => api.get('/samples/grain', { params }),
   createGrain: (data) => api.post('/samples/grain', data),
 }
