@@ -21,7 +21,20 @@ export default function Login({ onLogin }) {
       onLogin(data.user)
       navigate('/')
     } catch (err) {
-      setError(err.response?.data?.detail || 'Error al iniciar sesión')
+      const detail = err.response?.data?.detail
+      let msg = 'Error al iniciar sesión'
+      if (!err.response) {
+        msg = 'No se pudo conectar con el backend (http://localhost:8000). ¿Está corriendo docker compose?'
+      } else if (typeof detail === 'string') {
+        msg = detail
+      } else if (Array.isArray(detail)) {
+        msg = detail.map((d) => d.msg || JSON.stringify(d)).join(', ')
+      } else if (detail) {
+        msg = JSON.stringify(detail)
+      } else {
+        msg = `Error ${err.response.status}: ${err.response.statusText}`
+      }
+      setError(msg)
     } finally {
       setLoading(false)
     }
