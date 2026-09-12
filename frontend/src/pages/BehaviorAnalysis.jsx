@@ -3,6 +3,7 @@ import Plot from 'react-plotly.js'
 import { samplesApi } from '../lib/api'
 import { ArrowLeft, Beaker, Wheat, TrendingUp, BarChart3, MapPin } from 'lucide-react'
 import { canSeeProduct } from '../lib/permissions'
+import ChartToolbar from '../components/ChartToolbar'
 
 const PRODUCTS = [
   { key: 'torta_cacao', label: 'Torta de cacao', match: (n) => n && n.toLowerCase() === 'torta de cacao', type: 'lot' },
@@ -35,7 +36,7 @@ function useChartTheme() {
       paper_bgcolor: 'rgba(0,0,0,0)',
       plot_bgcolor: dark ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0)',
       font: { family: 'Roboto, system-ui, sans-serif', size: 12, color: text },
-      margin: { t: 48, r: 16, b: 88, l: 64 },
+      margin: { t: 24, r: 24, b: 88, l: 64 },
       dragmode: 'zoom',
       xaxis: {
         gridcolor: grid, zeroline: false, linecolor: grid,
@@ -106,7 +107,7 @@ function threshold() {
 function buildPlotConfig(filename = 'tendencia-cadmio') {
   return {
     responsive: true,
-    displayModeBar: true,
+    displayModeBar: false,
     displaylogo: false,
     modeBarButtonsToRemove: [
       'lasso2d',
@@ -134,37 +135,9 @@ export default function BehaviorAnalysis() {
   const [loading, setLoading] = useState(true)
   const theme = useChartTheme()
   const thr = threshold()
-
-  useEffect(() => {
-    const id = 'modebar-style-boost'
-    if (document.getElementById(id)) return
-    const s = document.createElement('style')
-    s.id = id
-    s.textContent = `
-      .js-plotly-plot .modebar-container { top: 6px !important; right: 8px !important; z-index: 20 !important; }
-      .js-plotly-plot .modebar {
-        background: #fff !important; border: 1px solid #e5e7eb !important;
-        border-radius: 10px !important; padding: 3px 4px !important;
-        box-shadow: 0 1px 3px rgba(0,0,0,.06) !important;
-        display: flex !important; align-items: center !important;
-      }
-      .js-plotly-plot .modebar-group { background: transparent !important; border: none !important; box-shadow: none !important; display: flex !important; }
-      .js-plotly-plot .modebar-group + .modebar-group { border-left: 1px solid #e5e7eb !important; margin-left: 2px !important; padding-left: 3px !important; }
-      .js-plotly-plot a.modebar-btn {
-        width: 28px !important; height: 28px !important; min-width: 28px !important; min-height: 28px !important;
-        border-radius: 7px !important; background: transparent !important; background-color: transparent !important;
-        padding: 0 !important; margin: 0 !important; border: none !important; box-shadow: none !important;
-        display: inline-flex !important; align-items: center !important; justify-content: center !important;
-      }
-      .js-plotly-plot a.modebar-btn:hover { background: #f3f4f6 !important; background-color: #f3f4f6 !important; }
-      .js-plotly-plot a.modebar-btn.active { background: #e8f0fe !important; background-color: #e8f0fe !important; }
-      .js-plotly-plot a.modebar-btn path { fill: #6b7280 !important; }
-      .js-plotly-plot a.modebar-btn:hover path,
-      .js-plotly-plot a.modebar-btn.active path { fill: #1a73e8 !important; }
-      .js-plotly-plot a.modebar-btn--logo { display: none !important; }
-    `
-    document.head.appendChild(s)
-  }, [])
+  const [trendGd, setTrendGd] = useState(null)
+  const [barGd, setBarGd] = useState(null)
+  const [originGd, setOriginGd] = useState(null)
 
   const allowedProducts = useMemo(() => PRODUCTS.filter((p) => canSeeProduct(p.key)), [])
   const current = allowedProducts.find((t) => t.key === selected) || null
@@ -323,14 +296,19 @@ export default function BehaviorAnalysis() {
       ) : (
         <>
           <div className="card p-5 chart-card">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="w-4 h-4 text-primary-500" />
-              <h2 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Tendencia de cadmio</h2>
-              <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: 'var(--hover)', color: 'var(--muted)' }}>
-                Umbral {thr} mg/kg
-              </span>
+            <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+              <div className="flex items-center gap-2 min-w-0">
+                <TrendingUp className="w-4 h-4 text-primary-500 shrink-0" />
+                <h2 className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>Tendencia de cadmio</h2>
+                <span className="text-xs px-2 py-0.5 rounded-full font-medium shrink-0" style={{ background: 'var(--hover)', color: 'var(--muted)' }}>
+                  Umbral {thr} mg/kg
+                </span>
+              </div>
+              <ChartToolbar graphDiv={trendGd} filename={`cadmio-${current.key}-tendencia`} />
             </div>
             <Plot
+              onInitialized={(_f, gd) => setTrendGd(gd)}
+              onUpdate={(_f, gd) => setTrendGd(gd)}
               data={[{
                 type: 'scatter', mode: 'lines+markers', name: 'Cd',
                 x: series.map((s) => s.date || s.label),
@@ -361,13 +339,18 @@ export default function BehaviorAnalysis() {
           </div>
 
           <div className="card p-5 chart-card">
-            <div className="flex items-center gap-2 mb-1">
-              <BarChart3 className="w-4 h-4 text-primary-500" />
-              <h2 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
-                Cadmio por {current.type === 'grain' ? 'guía' : 'lote'}
-              </h2>
+            <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 text-primary-500" />
+                <h2 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+                  Cadmio por {current.type === 'grain' ? 'guía' : 'lote'}
+                </h2>
+              </div>
+              <ChartToolbar graphDiv={barGd} filename={`cadmio-${current.key}-barras`} />
             </div>
             <Plot
+              onInitialized={(_f, gd) => setBarGd(gd)}
+              onUpdate={(_f, gd) => setBarGd(gd)}
               data={[{
                 type: 'bar',
                 x: series.map((s) => s.label), y: series.map((s) => s.value),
@@ -391,11 +374,16 @@ export default function BehaviorAnalysis() {
 
           {byOrigin.length > 0 && (
             <div className="card p-5 chart-card">
-              <div className="flex items-center gap-2 mb-1">
-                <MapPin className="w-4 h-4 text-primary-500" />
-                <h2 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Cadmio promedio por origen</h2>
+              <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-primary-500" />
+                  <h2 className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Cadmio promedio por origen</h2>
+                </div>
+                <ChartToolbar graphDiv={originGd} filename={`cadmio-${current.key}-origenes`} />
               </div>
               <Plot
+                onInitialized={(_f, gd) => setOriginGd(gd)}
+                onUpdate={(_f, gd) => setOriginGd(gd)}
                 data={[{
                   type: 'bar', orientation: 'h',
                   y: byOrigin.map((o) => o.name),
@@ -410,7 +398,7 @@ export default function BehaviorAnalysis() {
                 layout={{
                   ...theme.layout,
                   height: Math.max(320, byOrigin.length * 42 + 100),
-                  margin: { t: 48, r: 24, b: 52, l: 140 }, bargap: 0.32,
+                  margin: { t: 24, r: 24, b: 52, l: 140 }, bargap: 0.32,
                   xaxis: { ...theme.layout.xaxis, title: { text: 'Cd promedio (mg/kg)', font: { color: theme.colors.softText, size: 12 } } },
                   yaxis: { ...theme.layout.yaxis, title: undefined, automargin: true, tickfont: { size: 11, color: theme.colors.softText } },
                   shapes: [{ type: 'line', yref: 'paper', y0: 0, y1: 1, x0: thr, x1: thr,
