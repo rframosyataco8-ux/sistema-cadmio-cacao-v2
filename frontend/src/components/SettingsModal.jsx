@@ -11,6 +11,16 @@ import {
   Camera,
 } from 'lucide-react'
 import { authApi } from '../lib/api'
+import { PRODUCT_KEYS } from '../lib/permissions'
+
+const emptyPerms = () => ({
+  dashboard: true,
+  results: true,
+  behavior: true,
+  products_catalog: true,
+  can_create_samples: false,
+  products: [],
+})
 
 export default function SettingsModal({ open, onClose, user, setUser, initialTab = 'cuenta' }) {
   const isAdmin = user?.role === 'admin'
@@ -20,6 +30,8 @@ export default function SettingsModal({ open, onClose, user, setUser, initialTab
   const [name, setName] = useState(user?.full_name || '')
   const [avatar, setAvatar] = useState(user?.avatar || null)
   const [users, setUsers] = useState([])
+  const [editId, setEditId] = useState(null)
+  const [editPerms, setEditPerms] = useState(emptyPerms())
   const [newUser, setNewUser] = useState({
     email: '',
     full_name: '',
@@ -35,6 +47,7 @@ export default function SettingsModal({ open, onClose, user, setUser, initialTab
       setAvatar(user?.avatar || null)
       setMsg('')
       setDark(document.documentElement.classList.contains('dark'))
+      setEditId(null)
     }
   }, [open, initialTab, user])
 
@@ -46,7 +59,6 @@ export default function SettingsModal({ open, onClose, user, setUser, initialTab
 
   if (!open) return null
 
-  // Apariencia (tema oscuro) disponible para TODOS
   const tabs = isAdmin
     ? [
         { id: 'cuenta', label: 'Cuenta', icon: User },
@@ -106,6 +118,45 @@ export default function SettingsModal({ open, onClose, user, setUser, initialTab
     }
   }
 
+  const openEdit = (u) => {
+    setEditId(u.id)
+    setEditPerms({ ...emptyPerms(), ...(u.permissions || {}) })
+  }
+
+  const toggleSection = (key) => {
+    setEditPerms((p) => ({ ...p, [key]: !p[key] }))
+  }
+
+  const toggleProduct = (key) => {
+    setEditPerms((p) => {
+      const list = p.products || []
+      // vacío = todos; al marcar el primero, empezamos lista restrictiva
+      if (list.length === 0) {
+        // restringir a solo este producto (todos excepto quitar otros implícitos)
+        return { ...p, products: [key] }
+      }
+      if (list.includes(key)) {
+        const next = list.filter((k) => k !== key)
+        return { ...p, products: next }
+      }
+      return { ...p, products: [...list, key] }
+    })
+  }
+
+  const setAllProducts = () => setEditPerms((p) => ({ ...p, products: [] }))
+
+  const savePerms = async () => {
+    try {
+      await authApi.updateUser(editId, { permissions: editPerms })
+      setMsg('Privilegios actualizados')
+      setEditId(null)
+      const { data } = await authApi.listUsers()
+      setUsers(data)
+    } catch (err) {
+      setMsg(err.response?.data?.detail || 'Error al guardar privilegios')
+    }
+  }
+
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
@@ -123,6 +174,7 @@ export default function SettingsModal({ open, onClose, user, setUser, initialTab
               onClick={() => {
                 setTab(t.id)
                 setMsg('')
+                setEditId(null)
               }}
               className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left transition-colors ${
                 tab === t.id ? 'nav-active font-medium' : 'hover:opacity-80'
@@ -140,9 +192,7 @@ export default function SettingsModal({ open, onClose, user, setUser, initialTab
             className="flex items-center justify-between px-5 py-3 border-b"
             style={{ borderColor: 'var(--border)' }}
           >
-            <h2 className="text-base font-medium">
-              {tabs.find((t) => t.id === tab)?.label}
-            </h2>
+            <h2 className="text-base font-medium">{tabs.find((t) => t.id === tab)?.label}</h2>
             <button type="button" onClick={onClose} className="p-1.5 rounded-lg hover:opacity-70">
               <X className="w-5 h-5" style={{ color: 'var(--muted)' }} />
             </button>
@@ -175,7 +225,6 @@ export default function SettingsModal({ open, onClose, user, setUser, initialTab
                     Foto de perfil (se guarda en la base de datos)
                   </div>
                 </div>
-
                 <div>
                   <label className="label">Nombre</label>
                   <input className="input" value={name} onChange={(e) => setName(e.target.value)} />
@@ -196,31 +245,27 @@ export default function SettingsModal({ open, onClose, user, setUser, initialTab
               </div>
             )}
 
-            {/* Tema oscuro — TODOS los usuarios */}
             {tab === 'apariencia' && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium">Tema oscuro</p>
-                    <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                      Cambia el aspecto de toda la aplicación
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={toggleDark}
-                    className={`w-12 h-7 rounded-full transition-colors relative ${
-                      dark ? 'bg-primary-500' : 'bg-gray-300'
-                    }`}
-                    aria-label="Alternar tema oscuro"
-                  >
-                    <span
-                      className={`absolute top-0.5 w-6 h-6 rounded-full bg-white shadow transition-transform ${
-                        dark ? 'left-5' : 'left-0.5'
-                      }`}
-                    />
-                  </button>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Tema oscuro</p>
+                  <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                    Cambia el aspecto de toda la aplicación
+                  </p>
                 </div>
+                <button
+                  type="button"
+                  onClick={toggleDark}
+                  className={`w-12 h-7 rounded-full transition-colors relative ${
+                    dark ? 'bg-primary-500' : 'bg-gray-300'
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 w-6 h-6 rounded-full bg-white shadow transition-transform ${
+                      dark ? 'left-5' : 'left-0.5'
+                    }`}
+                  />
+                </button>
               </div>
             )}
 
@@ -282,26 +327,23 @@ export default function SettingsModal({ open, onClose, user, setUser, initialTab
                     value={newUser.role}
                     onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
                   >
-                    <option value="viewer">Visualizador (solo lectura)</option>
-                    <option value="analyst">Analista (registrar muestras)</option>
+                    <option value="viewer">Visualizador</option>
+                    <option value="analyst">Analista</option>
                   </select>
-                  <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                    No se puede crear otro administrador. Solo existe uno.
-                  </p>
                   <button type="submit" className="btn-primary w-fit">
                     Crear usuario
                   </button>
                 </form>
 
-                <div>
-                  <p className="text-sm font-medium mb-2">Usuarios del sistema</p>
-                  <div className="space-y-2">
-                    {users.map((u) => (
-                      <div
-                        key={u.id}
-                        className="flex items-center justify-between px-3 py-2 rounded-lg border text-sm"
-                        style={{ borderColor: 'var(--border)' }}
-                      >
+                <div className="space-y-3">
+                  <p className="text-sm font-medium">Usuarios y privilegios</p>
+                  {users.map((u) => (
+                    <div
+                      key={u.id}
+                      className="rounded-xl border p-3 text-sm space-y-2"
+                      style={{ borderColor: 'var(--border)' }}
+                    >
+                      <div className="flex items-center justify-between gap-2">
                         <div>
                           <p className="font-medium">{u.full_name}</p>
                           <p className="text-xs" style={{ color: 'var(--muted)' }}>
@@ -310,22 +352,109 @@ export default function SettingsModal({ open, onClose, user, setUser, initialTab
                           </p>
                         </div>
                         {u.role !== 'admin' && (
-                          <button
-                            type="button"
-                            className="text-xs px-2 py-1 rounded border"
-                            style={{ borderColor: 'var(--border)' }}
-                            onClick={async () => {
-                              await authApi.setActive(u.id, !u.is_active)
-                              const { data } = await authApi.listUsers()
-                              setUsers(data)
-                            }}
-                          >
-                            {u.is_active ? 'Desactivar' : 'Activar'}
-                          </button>
+                          <div className="flex gap-2 shrink-0">
+                            <button
+                              type="button"
+                              className="text-xs px-2 py-1 rounded border"
+                              style={{ borderColor: 'var(--border)' }}
+                              onClick={() => openEdit(u)}
+                            >
+                              Privilegios
+                            </button>
+                            <button
+                              type="button"
+                              className="text-xs px-2 py-1 rounded border"
+                              style={{ borderColor: 'var(--border)' }}
+                              onClick={async () => {
+                                await authApi.setActive(u.id, !u.is_active)
+                                const { data } = await authApi.listUsers()
+                                setUsers(data)
+                              }}
+                            >
+                              {u.is_active ? 'Desactivar' : 'Activar'}
+                            </button>
+                          </div>
                         )}
                       </div>
-                    ))}
-                  </div>
+
+                      {editId === u.id && (
+                        <div
+                          className="mt-2 p-3 rounded-lg space-y-3"
+                          style={{ background: 'var(--hover)' }}
+                        >
+                          <p className="text-xs font-medium">Secciones visibles</p>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            {[
+                              ['dashboard', 'Dashboard'],
+                              ['results', 'Resultado'],
+                              ['behavior', 'Comportamiento'],
+                              ['products_catalog', 'Productos & Orígenes'],
+                              ['can_create_samples', 'Registrar muestras'],
+                            ].map(([key, label]) => (
+                              <label key={key} className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={!!editPerms[key]}
+                                  onChange={() => toggleSection(key)}
+                                />
+                                {label}
+                              </label>
+                            ))}
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-medium">Productos visibles</p>
+                            <button
+                              type="button"
+                              className="text-xs text-primary-500"
+                              onClick={setAllProducts}
+                            >
+                              Todos
+                            </button>
+                          </div>
+                          <p className="text-[11px]" style={{ color: 'var(--muted)' }}>
+                            Sin marcar ninguno = acceso a todos. Si marcas, solo verá esos.
+                          </p>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            {PRODUCT_KEYS.map((pk) => {
+                              const all = !editPerms.products || editPerms.products.length === 0
+                              const checked = all || editPerms.products.includes(pk.key)
+                              return (
+                                <label key={pk.key} className="flex items-center gap-2 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={() => {
+                                      if (all) {
+                                        // pasar de "todos" a solo este
+                                        setEditPerms((p) => ({ ...p, products: [pk.key] }))
+                                      } else {
+                                        toggleProduct(pk.key)
+                                      }
+                                    }}
+                                  />
+                                  {pk.label}
+                                </label>
+                              )
+                            })}
+                          </div>
+
+                          <div className="flex gap-2 pt-1">
+                            <button type="button" className="btn-primary text-xs" onClick={savePerms}>
+                              Guardar privilegios
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-ghost text-xs"
+                              onClick={() => setEditId(null)}
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -334,13 +463,12 @@ export default function SettingsModal({ open, onClose, user, setUser, initialTab
               <div className="space-y-3 text-sm" style={{ color: 'var(--muted)' }}>
                 <p>
                   <strong style={{ color: 'var(--text)' }}>Resultado:</strong> tablas de análisis por
-                  producto y grano.
+                  producto.
                 </p>
                 <p>
                   <strong style={{ color: 'var(--text)' }}>Comportamiento:</strong> gráficos de
                   cadmio por producto.
                 </p>
-                <p>Las muestras se registran por peso (lote o guía de origen).</p>
               </div>
             )}
 
@@ -350,7 +478,6 @@ export default function SettingsModal({ open, onClose, user, setUser, initialTab
                   Cadmio Cacao — Trazabilidad V2
                 </p>
                 <p>Sistema de control de cadmio en productos de cacao y grano.</p>
-                <p className="text-xs">PostgreSQL · FastAPI · React</p>
               </div>
             )}
           </div>
