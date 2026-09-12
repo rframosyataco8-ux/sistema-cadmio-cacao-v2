@@ -1,48 +1,28 @@
-import { useState, useRef, useEffect } from 'react'
-import { Eye, ZoomIn, Move, RotateCcw, Download, ChevronDown, Maximize2 } from 'lucide-react'
+import { useState } from 'react'
+import { ZoomIn, Move, RotateCcw, Download } from 'lucide-react'
 
 /**
- * Barra de herramientas personalizada para gráficos Plotly.
- * Reemplaza el modebar nativo con un diseño más limpio y profesional.
+ * Barra minimalista para controlar gráficos Plotly.
+ * Se coloca en el encabezado de la tarjeta (no encima del gráfico).
  */
-export default function ChartToolbar({ plotRef, filename = 'grafico-cadmio' }) {
+export default function ChartToolbar({ graphDiv, filename = 'grafico-cadmio' }) {
   const [mode, setMode] = useState('zoom')
-  const [viewOpen, setViewOpen] = useState(false)
-  const menuRef = useRef(null)
 
-  useEffect(() => {
-    const handler = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setViewOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
-
-  const getGraph = () => {
-    const el = plotRef?.current
-    if (!el) return null
-    if (el.el) return el.el
-    if (el.querySelector) {
-      const plot = el.querySelector('.js-plotly-plot')
-      return plot || el
-    }
-    return el
-  }
-
-  const getPlotly = () => window.Plotly
+  const plotly = () => window.Plotly
+  const gd = () => graphDiv
 
   const setDragMode = (dragmode) => {
     setMode(dragmode === 'pan' ? 'pan' : 'zoom')
-    const gd = getGraph()
-    const Plotly = getPlotly()
-    if (gd && Plotly) Plotly.relayout(gd, { dragmode })
+    const g = gd()
+    const P = plotly()
+    if (g && P) P.relayout(g, { dragmode })
   }
 
-  const resetView = () => {
-    const gd = getGraph()
-    const Plotly = getPlotly()
-    if (gd && Plotly) {
-      Plotly.relayout(gd, {
+  const reset = () => {
+    const g = gd()
+    const P = plotly()
+    if (g && P) {
+      P.relayout(g, {
         'xaxis.autorange': true,
         'yaxis.autorange': true,
         dragmode: 'zoom',
@@ -51,23 +31,11 @@ export default function ChartToolbar({ plotRef, filename = 'grafico-cadmio' }) {
     }
   }
 
-  const fitView = () => {
-    const gd = getGraph()
-    const Plotly = getPlotly()
-    if (gd && Plotly) {
-      Plotly.relayout(gd, {
-        'xaxis.autorange': true,
-        'yaxis.autorange': true,
-      })
-    }
-    setViewOpen(false)
-  }
-
-  const downloadPng = () => {
-    const gd = getGraph()
-    const Plotly = getPlotly()
-    if (gd && Plotly) {
-      Plotly.downloadImage(gd, {
+  const download = () => {
+    const g = gd()
+    const P = plotly()
+    if (g && P) {
+      P.downloadImage(g, {
         format: 'png',
         filename,
         height: 720,
@@ -75,72 +43,41 @@ export default function ChartToolbar({ plotRef, filename = 'grafico-cadmio' }) {
         scale: 2,
       })
     }
-    setViewOpen(false)
   }
 
-  const btnBase =
-    'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 select-none'
-  const btnIdle = 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-  const btnActive = 'bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-100'
+  const btn =
+    'inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md text-xs font-medium transition-colors select-none'
+  const idle = 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
+  const active = 'bg-blue-50 text-blue-700'
 
   return (
-    <div className="chart-toolbar" ref={menuRef}>
-      <div className="relative">
-        <button
-          type="button"
-          className={`${btnBase} ${viewOpen ? btnActive : btnIdle}`}
-          onClick={() => setViewOpen((v) => !v)}
-        >
-          <Eye className="w-3.5 h-3.5" strokeWidth={2} />
-          Vista
-          <ChevronDown className={`w-3 h-3 transition-transform ${viewOpen ? 'rotate-180' : ''}`} />
-        </button>
-        {viewOpen && (
-          <div className="chart-toolbar-menu">
-            <button type="button" onClick={fitView} className="chart-toolbar-menu-item">
-              <Maximize2 className="w-3.5 h-3.5" />
-              Ajustar a datos
-            </button>
-            <button type="button" onClick={downloadPng} className="chart-toolbar-menu-item">
-              <Download className="w-3.5 h-3.5" />
-              Descargar PNG
-            </button>
-          </div>
-        )}
-      </div>
-
-      <span className="chart-toolbar-sep" />
-
+    <div className="inline-flex items-center gap-0.5 p-0.5 rounded-lg border border-gray-200 bg-white shadow-sm">
       <button
         type="button"
-        className={`${btnBase} ${mode === 'zoom' ? btnActive : btnIdle}`}
+        className={`${btn} ${mode === 'zoom' ? active : idle}`}
         onClick={() => setDragMode('zoom')}
-        title="Zoom (arrastra para ampliar)"
+        title="Zoom"
       >
         <ZoomIn className="w-3.5 h-3.5" strokeWidth={2} />
-        Zoom
+        <span className="hidden sm:inline">Zoom</span>
       </button>
-
       <button
         type="button"
-        className={`${btnBase} ${mode === 'pan' ? btnActive : btnIdle}`}
+        className={`${btn} ${mode === 'pan' ? active : idle}`}
         onClick={() => setDragMode('pan')}
-        title="Desplazar el gráfico"
+        title="Mover"
       >
         <Move className="w-3.5 h-3.5" strokeWidth={2} />
-        Pan
+        <span className="hidden sm:inline">Mover</span>
       </button>
-
-      <span className="chart-toolbar-sep" />
-
-      <button
-        type="button"
-        className={`${btnBase} ${btnIdle}`}
-        onClick={resetView}
-        title="Restablecer vista"
-      >
+      <span className="w-px h-4 bg-gray-200 mx-0.5" />
+      <button type="button" className={`${btn} ${idle}`} onClick={reset} title="Reiniciar vista">
         <RotateCcw className="w-3.5 h-3.5" strokeWidth={2} />
-        Reiniciar
+        <span className="hidden sm:inline">Reiniciar</span>
+      </button>
+      <button type="button" className={`${btn} ${idle}`} onClick={download} title="Descargar PNG">
+        <Download className="w-3.5 h-3.5" strokeWidth={2} />
+        <span className="hidden sm:inline">PNG</span>
       </button>
     </div>
   )
