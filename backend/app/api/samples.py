@@ -11,6 +11,7 @@ from app.schemas.sample import (
     SampleLotUpdate,
     SampleLotOut,
     SampleGrainCreate,
+    SampleGrainUpdate,
     SampleGrainOut,
 )
 from app.api.deps import get_current_user, require_roles
@@ -205,3 +206,55 @@ def create_sample_grain(
         is_organic=s.is_organic,
         created_at=s.created_at,
     )
+
+
+@router.patch("/samples/grain/{sample_id}", response_model=SampleGrainOut)
+def update_sample_grain(
+    sample_id: int,
+    payload: SampleGrainUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN, UserRole.ANALYST)),
+):
+    s = db.get(SampleGrain, sample_id)
+    if not s:
+        raise HTTPException(404, "Muestra de grano no encontrada")
+    data = payload.model_dump(exclude_unset=True)
+    if "origin_id" in data and data["origin_id"] is not None:
+        origin = db.get(Origin, data["origin_id"])
+        if not origin:
+            raise HTTPException(404, "Origen no encontrado")
+    for k, v in data.items():
+        setattr(s, k, v)
+    if s.cadmium_mg_kg is not None:
+        s.has_sample = True
+    db.commit()
+    db.refresh(s)
+    origin = db.get(Origin, s.origin_id)
+    return SampleGrainOut(
+        id=s.id,
+        origin_id=s.origin_id,
+        origin_name=origin.name if origin else None,
+        guia_code=s.guia_code,
+        cadmium_mg_kg=s.cadmium_mg_kg,
+        has_sample=s.has_sample,
+        sample_weight_g=s.sample_weight_g,
+        observation=s.observation,
+        analysis_date=s.analysis_date,
+        send_date=s.send_date,
+        is_organic=s.is_organic,
+        created_at=s.created_at,
+    )
+
+
+@router.delete("/samples/grain/{sample_id}")
+def delete_sample_grain(
+    sample_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN, UserRole.ANALYST)),
+):
+    s = db.get(SampleGrain, sample_id)
+    if not s:
+        raise HTTPException(404, "Muestra de grano no encontrada")
+    db.delete(s)
+    db.commit()
+    return {"ok": True}
