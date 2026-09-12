@@ -94,7 +94,13 @@ def seed():
 
         from sqlalchemy import text
         try:
+            # Quitar unicidad GLOBAL de lot_code (índices y constraints viejos)
             db.execute(text("ALTER TABLE lots DROP CONSTRAINT IF EXISTS lots_lot_code_key"))
+            db.execute(text("ALTER TABLE lots DROP CONSTRAINT IF EXISTS ix_lots_lot_code"))
+            db.execute(text("DROP INDEX IF EXISTS lots_lot_code_key"))
+            db.execute(text("DROP INDEX IF EXISTS ix_lots_lot_code"))
+            db.execute(text("DROP INDEX IF EXISTS lots_lot_code_idx"))
+            # Unicidad por (producto, código)
             db.execute(text(
                 "DO $$ BEGIN "
                 "IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'uq_lot_product_code') THEN "
@@ -102,6 +108,7 @@ def seed():
                 "END IF; END $$;"
             ))
             db.commit()
+            print("Migración lot_code: OK (único por producto)")
         except Exception as mig_err:
             db.rollback()
             print(f"Nota migración lot_code: {mig_err}")
