@@ -42,6 +42,7 @@ function StatusBadge({ status }) {
   )
 }
 
+/** Buscador de lotes */
 function LotCombobox({ lots, value, onChange, lotCode, onLotCodeChange, disabled }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -135,6 +136,7 @@ function LotCombobox({ lots, value, onChange, lotCode, onLotCodeChange, disabled
   )
 }
 
+/** Multi-select de orígenes con checkboxes */
 function OriginsMultiSelect({ origins, selected, onChange }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
@@ -402,6 +404,7 @@ export default function SamplesLot() {
         ))}
       </div>
 
+      {/* Formulario simple */}
       {showForm && !currentTab.isGrain && (
         <div className="card p-6 space-y-4">
           <div className="flex items-center gap-2">
@@ -452,6 +455,7 @@ export default function SamplesLot() {
                   setForm({
                     ...form,
                     estado: e.target.value,
+                    // limpiar cadmio si pasa a pendiente
                     cadmium_mg_kg: e.target.value === 'pendiente' ? '' : form.cadmium_mg_kg,
                   })
                 }
@@ -461,6 +465,7 @@ export default function SamplesLot() {
               </select>
             </div>
 
+            {/* Cadmio SOLO si estado = Con resultado */}
             {form.estado === 'resultado' && (
               <div>
                 <label className="label">Cadmio (mg/kg)</label>
