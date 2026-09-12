@@ -31,13 +31,18 @@ def seed():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
-        if not db.query(User).filter(User.email == "admin@cadmio.local").first():
+        admin = db.query(User).filter(
+            (User.email == "admin@cadmio.com") | (User.email == "admin@cadmio.local")
+        ).first()
+        if not admin:
             db.add(User(
-                email="admin@cadmio.local",
+                email="admin@cadmio.com",
                 full_name="Administrador",
                 hashed_password=get_password_hash("admin123"),
                 role=UserRole.ADMIN,
             ))
+        elif admin.email == "admin@cadmio.local":
+            admin.email = "admin@cadmio.com"
 
         for name in ["Torta de cacao", "Torta de cacao alcalino", "Torta trozada estándar",
                      "Grano de cacao", "Cacao alcalino reducido en grasa", "Cacao en polvo"]:
@@ -103,7 +108,7 @@ def seed():
             ))
 
         db.commit()
-        print("Seed completado")
+        print("Seed completado — login: admin@cadmio.com / admin123")
     except Exception as e:
         db.rollback()
         print(f"Error: {e}")
