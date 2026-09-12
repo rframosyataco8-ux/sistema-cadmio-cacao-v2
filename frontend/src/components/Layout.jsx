@@ -15,6 +15,7 @@ import {
   HelpCircle,
   User,
   Info,
+  Moon,
 } from 'lucide-react'
 import SettingsModal from './SettingsModal'
 
@@ -224,6 +225,15 @@ export default function Layout({ user, setUser }) {
                 >
                   <User className="w-4 h-4" style={{ color: 'var(--muted)' }} />
                   Cuenta
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openSettings('apariencia')}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:opacity-80"
+                  style={{ color: 'var(--text)' }}
+                >
+                  <Moon className="w-4 h-4" style={{ color: 'var(--muted)' }} />
+                  Apariencia
                 </button>
                 <button
                   type="button"
