@@ -16,6 +16,7 @@ import {
   User,
   Info,
   Moon,
+  Bug,
 } from 'lucide-react'
 import SettingsModal from './SettingsModal'
 import { canAccess } from '../lib/permissions'
@@ -179,6 +180,16 @@ export default function Layout({ user, setUser }) {
                     >
                       <Table2 className="w-4 h-4" />
                       Resultado
+                    </NavLink>
+                  )}
+                  {showResults && (
+                    <NavLink
+                      to="/samples/plaguicidas"
+                      className={subLinkClass}
+                      style={({ isActive }) => (!isActive ? { color: 'var(--muted)' } : undefined)}
+                    >
+                      <Bug className="w-4 h-4" />
+                      Plaguicidas
                     </NavLink>
                   )}
                   {showBehavior && (
