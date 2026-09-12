@@ -132,7 +132,7 @@ html.dark .hover\:bg-surface-100:hover {
   }
 }
 
-/* ── Plotly charts ── */
+/* ── Plotly modebar – diseño pill (mismas opciones, mejor aspecto) ── */
 .chart-card {
   position: relative;
   overflow: visible;
@@ -145,9 +145,9 @@ html.dark .hover\:bg-surface-100:hover {
 }
 
 .modebar-container {
-  top: 10px !important;
-  right: 12px !important;
-  z-index: 20 !important;
+  top: 6px !important;
+  right: 8px !important;
+  z-index: 30 !important;
 }
 
 .modebar {
@@ -156,40 +156,113 @@ html.dark .hover\:bg-surface-100:hover {
   flex-wrap: nowrap !important;
   align-items: center !important;
   gap: 2px !important;
-  padding: 5px 6px !important;
-  background: rgba(255, 255, 255, 0.92) !important;
+  padding: 4px 5px !important;
+  background: rgba(255, 255, 255, 0.96) !important;
   border: 1px solid rgba(0, 0, 0, 0.08) !important;
-  border-radius: 14px !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.06) !important;
-  backdrop-filter: blur(12px) saturate(1.2);
+  border-radius: 9999px !important;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 4px 14px rgba(0, 0, 0, 0.07) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 html.dark .modebar {
-  background: rgba(32, 32, 36, 0.94) !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(32, 32, 36, 0.96) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    0 4px 16px rgba(0, 0, 0, 0.4) !important;
+}
+
+.modebar .modebar-group {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 1px !important;
+  margin: 0 !important;
+  padding: 0 2px !important;
+}
+
+.modebar .modebar-group + .modebar-group {
+  border-left: 1px solid rgba(0, 0, 0, 0.08) !important;
+  margin-left: 2px !important;
+  padding-left: 4px !important;
+}
+
+html.dark .modebar .modebar-group + .modebar-group {
+  border-left-color: rgba(255, 255, 255, 0.12) !important;
 }
 
 .modebar-btn {
-  width: 32px !important;
-  height: 32px !important;
-  border-radius: 10px !important;
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px !important;
+  min-height: 30px !important;
+  border-radius: 9999px !important;
   padding: 0 !important;
+  margin: 0 !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
   background: transparent !important;
+  border: none !important;
+  transition: background 0.15s ease, box-shadow 0.15s ease !important;
+  cursor: pointer !important;
 }
 
 .modebar-btn:hover {
   background: #e8f0fe !important;
 }
 
-.modebar-btn path {
-  fill: #5f6368 !important;
+.modebar-btn.active,
+.modebar-btn:focus {
+  background: #e8f0fe !important;
+  box-shadow: inset 0 0 0 1.5px rgba(26, 115, 232, 0.35) !important;
 }
 
-.modebar-btn:hover path {
+html.dark .modebar-btn:hover,
+html.dark .modebar-btn.active {
+  background: rgba(138, 180, 248, 0.18) !important;
+}
+
+.modebar-btn svg {
+  width: 15px !important;
+  height: 15px !important;
+}
+
+.modebar-btn path {
+  fill: #5f6368 !important;
+  transition: fill 0.15s ease !important;
+}
+
+.modebar-btn:hover path,
+.modebar-btn.active path {
   fill: #1a73e8 !important;
+}
+
+html.dark .modebar-btn path {
+  fill: #b0b3b8 !important;
+}
+
+html.dark .modebar-btn:hover path,
+html.dark .modebar-btn.active path {
+  fill: #8ab4f8 !important;
+}
+
+.modebar-btn[data-title*="Download"] path,
+.modebar-btn[data-title*="download"] path,
+.modebar-btn[data-title*="PNG"] path,
+.modebar-btn[data-title*="png"] path,
+.modebar-btn[data-title*="image"] path,
+.modebar-btn[data-title*="Image"] path {
+  fill: #1a73e8 !important;
+}
+
+html.dark .modebar-btn[data-title*="Download"] path,
+html.dark .modebar-btn[data-title*="download"] path,
+html.dark .modebar-btn[data-title*="image"] path {
+  fill: #8ab4f8 !important;
 }
 
 .modebar-btn--logo {
@@ -199,93 +272,4 @@ html.dark .modebar {
 .hoverlayer .hovertext {
   border-radius: 10px !important;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
-}
-
-/* ── Custom chart toolbar ── */
-.chart-toolbar {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: 4px 5px;
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 12px;
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.04),
-    0 4px 12px rgba(0, 0, 0, 0.06);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-
-html.dark .chart-toolbar {
-  background: rgba(32, 32, 36, 0.95);
-  border-color: rgba(255, 255, 255, 0.1);
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.3),
-    0 4px 16px rgba(0, 0, 0, 0.4);
-}
-
-.chart-toolbar-sep {
-  width: 1px;
-  height: 18px;
-  background: rgba(0, 0, 0, 0.08);
-  margin: 0 3px;
-  flex-shrink: 0;
-}
-
-html.dark .chart-toolbar-sep {
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.chart-toolbar-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  min-width: 168px;
-  padding: 4px;
-  background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  z-index: 40;
-}
-
-html.dark .chart-toolbar-menu {
-  background: #1a1a1c;
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-.chart-toolbar-menu-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 8px 10px;
-  border: none;
-  background: transparent;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 500;
-  color: #374151;
-  cursor: pointer;
-  text-align: left;
-  transition: background 0.12s ease;
-}
-
-.chart-toolbar-menu-item:hover {
-  background: #f3f4f6;
-  color: #111827;
-}
-
-html.dark .chart-toolbar-menu-item {
-  color: #e5e7eb;
-}
-
-html.dark .chart-toolbar-menu-item:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-}
-
-.chart-card--custom-toolbar .modebar-container {
-  display: none !important;
 }
