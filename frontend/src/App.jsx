@@ -4,6 +4,7 @@ import Layout from './components/Layout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import SamplesLot from './pages/SamplesLot'
+import SamplesPesticides from './pages/SamplesPesticides'
 import BehaviorAnalysis from './pages/BehaviorAnalysis'
 import Products from './pages/Products'
 
@@ -38,6 +39,7 @@ export default function App() {
       >
         <Route index element={<Dashboard />} />
         <Route path="samples/lot" element={<SamplesLot />} />
+        <Route path="samples/plaguicidas" element={<SamplesPesticides />} />
         <Route path="analisis/comportamiento" element={<BehaviorAnalysis />} />
         <Route path="products" element={<Products />} />
       </Route>
