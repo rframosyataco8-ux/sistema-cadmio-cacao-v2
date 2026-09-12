@@ -1,12 +1,11 @@
 """
-Seed: datos REALES del Excel ya extraídos → PostgreSQL.
-El Excel NO se usa en runtime.
-
+Seed: datos REALES del Excel → PostgreSQL (sin depender del Excel).
 Ejecutar: docker compose exec backend python -m app.db.seed
 """
 from __future__ import annotations
 import json
-from pathlib import Path
+import zlib
+import base64
 from datetime import date
 from app.db.session import SessionLocal, engine, Base
 from app.core.security import get_password_hash
@@ -14,33 +13,12 @@ from app.models.user import User, UserRole
 from app.models.catalog import Product, Origin
 from app.models.lot import Lot, LotOrigin
 from app.models.sample import SampleLot, SampleGrain
-
-DATA = Path(__file__).resolve().parent / "data"
-
-
-def _json(name: str):
-    with open(DATA / name, encoding="utf-8") as f:
-        return json.load(f)
+from app.db.data.real_data_blob import BLOB
 
 
-def load_lots():
-    if (DATA / "real_lot_samples.json").exists():
-        return _json("real_lot_samples.json")
-    parts = []
-    for name in [
-        "real_lot_samples_1.json",
-        "real_lot_samples_2.json",
-        "real_lot_samples_3.json",
-        "real_lot_samples_4.json",
-    ]:
-        p = DATA / name
-        if p.exists():
-            parts.extend(_json(name))
-    if not parts:
-        raise FileNotFoundError(
-            "Faltan real_lot_samples_1.json ... _4.json en app/db/data/. Haz git pull."
-        )
-    return parts
+def load_real_data():
+    raw = zlib.decompress(base64.b64decode(BLOB))
+    return json.loads(raw.decode("utf-8"))
 
 
 def get_or_create_origin(db, name: str) -> Origin:
@@ -94,8 +72,9 @@ def seed():
             admin.email = "admin@cadmio.com"
         db.commit()
 
-        lot_rows = load_lots()
-        grain_rows = _json("real_grain_samples.json")
+        data = load_real_data()
+        lot_rows = data["lots"]
+        grain_rows = data["grain"]
 
         n_lots = n_samples = 0
         for row in lot_rows:
