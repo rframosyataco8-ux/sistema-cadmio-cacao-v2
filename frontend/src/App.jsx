@@ -4,7 +4,7 @@ import Layout from './components/Layout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import SamplesLot from './pages/SamplesLot'
-import SamplesGrain from './pages/SamplesGrain'
+import BehaviorAnalysis from './pages/BehaviorAnalysis'
 import Products from './pages/Products'
 
 function PrivateRoute({ children }) {
@@ -13,16 +13,27 @@ function PrivateRoute({ children }) {
 
 export default function App() {
   const [user, setUser] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('user')) } catch { return null }
+    try {
+      return JSON.parse(localStorage.getItem('user'))
+    } catch {
+      return null
+    }
   })
 
   return (
     <Routes>
       <Route path="/login" element={<Login onLogin={setUser} />} />
-      <Route path="/" element={<PrivateRoute><Layout user={user} setUser={setUser} /></PrivateRoute>}>
+      <Route
+        path="/"
+        element={
+          <PrivateRoute>
+            <Layout user={user} setUser={setUser} />
+          </PrivateRoute>
+        }
+      >
         <Route index element={<Dashboard />} />
         <Route path="samples/lot" element={<SamplesLot />} />
-        <Route path="samples/grain" element={<SamplesGrain />} />
+        <Route path="analisis/comportamiento" element={<BehaviorAnalysis />} />
         <Route path="products" element={<Products />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
