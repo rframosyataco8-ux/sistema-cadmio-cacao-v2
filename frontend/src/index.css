@@ -132,11 +132,57 @@ html.dark .hover\:bg-surface-100:hover {
   }
 }
 
-/* ── Plotly modebar – nivel premium ── */
+/* ── Plotly modebar – premium + animaciones avanzadas ── */
+
+@keyframes modebar-enter {
+  0% { opacity: 0; transform: translateY(-8px) scale(0.92); filter: blur(4px); }
+  100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+@keyframes modebar-btn-enter {
+  0% { opacity: 0; transform: scale(0.6); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes modebar-shine {
+  0% { transform: translateX(-120%) skewX(-12deg); opacity: 0; }
+  30% { opacity: 0.5; }
+  100% { transform: translateX(120%) skewX(-12deg); opacity: 0; }
+}
+
+@keyframes modebar-active-pulse {
+  0%, 100% {
+    box-shadow:
+      inset 0 0 0 1.5px rgba(26, 115, 232, 0.45),
+      0 0 0 0 rgba(26, 115, 232, 0);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 0 1.5px rgba(26, 115, 232, 0.55),
+      0 0 0 4px rgba(26, 115, 232, 0.12);
+  }
+}
+
+@keyframes modebar-icon-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+
+@keyframes chart-card-in {
+  0% { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
 .chart-card {
   position: relative;
   overflow: visible;
+  animation: chart-card-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+
+.chart-card:nth-of-type(1) { animation-delay: 0.05s; }
+.chart-card:nth-of-type(2) { animation-delay: 0.12s; }
+.chart-card:nth-of-type(3) { animation-delay: 0.18s; }
 
 .chart-card .js-plotly-plot,
 .chart-card .js-plotly-plot .plotly,
@@ -156,50 +202,91 @@ html.dark .hover\:bg-surface-100:hover {
   flex-wrap: nowrap !important;
   align-items: center !important;
   gap: 0 !important;
-  padding: 5px 6px !important;
+  padding: 5px 7px !important;
+  position: relative !important;
   background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.98) 0%,
-    rgba(248, 250, 252, 0.96) 100%
+    165deg,
+    rgba(255, 255, 255, 0.97) 0%,
+    rgba(248, 250, 252, 0.94) 55%,
+    rgba(241, 245, 249, 0.92) 100%
   ) !important;
-  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+  border: 1px solid rgba(15, 23, 42, 0.07) !important;
   border-radius: 9999px !important;
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.7) inset,
+    0 0 0 1px rgba(255, 255, 255, 0.75) inset,
     0 1px 2px rgba(15, 23, 42, 0.04),
-    0 4px 12px rgba(15, 23, 42, 0.06),
-    0 12px 28px rgba(15, 23, 42, 0.05) !important;
-  backdrop-filter: blur(16px) saturate(1.4);
-  -webkit-backdrop-filter: blur(16px) saturate(1.4);
-  transition: box-shadow 0.2s ease !important;
+    0 4px 14px rgba(15, 23, 42, 0.06),
+    0 14px 32px rgba(15, 23, 42, 0.05) !important;
+  backdrop-filter: blur(18px) saturate(1.5);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  overflow: hidden !important;
+  animation: modebar-enter 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
+  transition:
+    box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.25s ease,
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.modebar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 45%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 100%
+  );
+  pointer-events: none;
+  opacity: 0;
+}
+
+.modebar:hover::after {
+  animation: modebar-shine 0.85s cubic-bezier(0.4, 0, 0.2, 1) 1;
 }
 
 .modebar:hover {
+  border-color: rgba(26, 115, 232, 0.12) !important;
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.85) inset,
+    0 0 0 1px rgba(255, 255, 255, 0.9) inset,
     0 2px 4px rgba(15, 23, 42, 0.05),
-    0 8px 20px rgba(15, 23, 42, 0.08),
-    0 16px 36px rgba(15, 23, 42, 0.06) !important;
+    0 8px 22px rgba(15, 23, 42, 0.08),
+    0 18px 40px rgba(26, 115, 232, 0.06) !important;
+  transform: translateY(-1px);
 }
 
 html.dark .modebar {
   background: linear-gradient(
-    180deg,
-    rgba(38, 38, 42, 0.96) 0%,
-    rgba(28, 28, 32, 0.94) 100%
+    165deg,
+    rgba(42, 42, 48, 0.96) 0%,
+    rgba(30, 30, 36, 0.94) 100%
   ) !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.09) !important;
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.06) inset,
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset,
     0 1px 2px rgba(0, 0, 0, 0.35),
-    0 8px 24px rgba(0, 0, 0, 0.45) !important;
+    0 8px 28px rgba(0, 0, 0, 0.45) !important;
 }
 
 html.dark .modebar:hover {
+  border-color: rgba(138, 180, 248, 0.18) !important;
   box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.08) inset,
+    0 0 0 1px rgba(255, 255, 255, 0.07) inset,
     0 2px 4px rgba(0, 0, 0, 0.4),
-    0 12px 32px rgba(0, 0, 0, 0.5) !important;
+    0 12px 36px rgba(0, 0, 0, 0.5),
+    0 0 24px rgba(138, 180, 248, 0.06) !important;
+}
+
+html.dark .modebar::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.12) 50%,
+    transparent 100%
+  );
 }
 
 .modebar .modebar-group {
@@ -212,13 +299,13 @@ html.dark .modebar:hover {
 }
 
 .modebar .modebar-group + .modebar-group {
-  border-left: 1px solid rgba(15, 23, 42, 0.1) !important;
-  margin-left: 3px !important;
-  padding-left: 6px !important;
+  border-left: 1px solid rgba(15, 23, 42, 0.09) !important;
+  margin-left: 4px !important;
+  padding-left: 7px !important;
 }
 
 html.dark .modebar .modebar-group + .modebar-group {
-  border-left-color: rgba(255, 255, 255, 0.12) !important;
+  border-left-color: rgba(255, 255, 255, 0.1) !important;
 }
 
 .modebar-btn {
@@ -237,9 +324,18 @@ html.dark .modebar .modebar-group + .modebar-group {
   outline: none !important;
   cursor: pointer !important;
   position: relative !important;
-  transition:
-    transform 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  animation: modebar-btn-enter 0.4s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+  transition: transform 0.18s cubic-bezier(0.34, 1.2, 0.64, 1) !important;
 }
+
+.modebar-btn:nth-child(1) { animation-delay: 0.18s; }
+.modebar-btn:nth-child(2) { animation-delay: 0.22s; }
+.modebar-btn:nth-child(3) { animation-delay: 0.26s; }
+.modebar-btn:nth-child(4) { animation-delay: 0.30s; }
+.modebar-btn:nth-child(5) { animation-delay: 0.34s; }
+.modebar-btn:nth-child(6) { animation-delay: 0.38s; }
+.modebar-btn:nth-child(7) { animation-delay: 0.42s; }
+.modebar-btn:nth-child(8) { animation-delay: 0.46s; }
 
 .modebar-btn::before {
   content: '';
@@ -247,23 +343,36 @@ html.dark .modebar .modebar-group + .modebar-group {
   inset: 2px;
   border-radius: 9999px;
   background: transparent;
-  transition: background 0.18s ease, box-shadow 0.18s ease;
+  transition:
+    background 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.2s ease;
   z-index: 0;
   pointer-events: none;
 }
 
 .modebar-btn:hover {
   background: transparent !important;
-  transform: translateY(-1px) scale(1.04);
+  transform: translateY(-2px) scale(1.08);
 }
 
 .modebar-btn:hover::before {
-  background: rgba(26, 115, 232, 0.1);
-  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.15);
+  background: rgba(26, 115, 232, 0.11);
+  box-shadow:
+    0 2px 10px rgba(26, 115, 232, 0.18),
+    0 0 0 1px rgba(26, 115, 232, 0.08);
+}
+
+.modebar-btn:hover svg {
+  animation: modebar-icon-pop 0.35s cubic-bezier(0.34, 1.4, 0.64, 1) 1;
 }
 
 .modebar-btn:active {
-  transform: translateY(0) scale(0.97);
+  transform: translateY(0) scale(0.94);
+}
+
+.modebar-btn:active::before {
+  transform: scale(0.92);
 }
 
 .modebar-btn.active {
@@ -271,22 +380,20 @@ html.dark .modebar .modebar-group + .modebar-group {
 }
 
 .modebar-btn.active::before {
-  background: rgba(26, 115, 232, 0.14);
-  box-shadow:
-    inset 0 0 0 1.5px rgba(26, 115, 232, 0.4),
-    0 1px 4px rgba(26, 115, 232, 0.12);
+  background: rgba(26, 115, 232, 0.15);
+  animation: modebar-active-pulse 2.2s ease-in-out infinite;
 }
 
 html.dark .modebar-btn:hover::before {
   background: rgba(138, 180, 248, 0.16);
-  box-shadow: 0 2px 10px rgba(138, 180, 248, 0.12);
+  box-shadow:
+    0 2px 12px rgba(138, 180, 248, 0.15),
+    0 0 0 1px rgba(138, 180, 248, 0.1);
 }
 
 html.dark .modebar-btn.active::before {
   background: rgba(138, 180, 248, 0.2);
-  box-shadow:
-    inset 0 0 0 1.5px rgba(138, 180, 248, 0.45),
-    0 1px 4px rgba(138, 180, 248, 0.1);
+  animation: modebar-active-pulse 2.2s ease-in-out infinite;
 }
 
 .modebar-btn svg {
@@ -294,12 +401,17 @@ html.dark .modebar-btn.active::before {
   height: 16px !important;
   position: relative;
   z-index: 1;
-  filter: drop-shadow(0 0.5px 0.5px rgba(0, 0, 0, 0.04));
+  filter: drop-shadow(0 0.5px 0.5px rgba(0, 0, 0, 0.05));
+  transition: filter 0.2s ease;
+}
+
+.modebar-btn:hover svg {
+  filter: drop-shadow(0 1px 2px rgba(26, 115, 232, 0.25));
 }
 
 .modebar-btn path {
   fill: #64748b !important;
-  transition: fill 0.15s ease !important;
+  transition: fill 0.18s ease !important;
 }
 
 .modebar-btn:hover path,
@@ -330,8 +442,10 @@ html.dark .modebar-btn.active path {
 .modebar-btn[data-title*="download"]:hover::before,
 .modebar-btn[data-title*="image"]:hover::before,
 .modebar-btn[data-title*="Image"]:hover::before {
-  background: rgba(26, 115, 232, 0.16);
-  box-shadow: 0 2px 10px rgba(26, 115, 232, 0.22);
+  background: rgba(26, 115, 232, 0.18);
+  box-shadow:
+    0 3px 12px rgba(26, 115, 232, 0.28),
+    0 0 0 1px rgba(26, 115, 232, 0.12);
 }
 
 html.dark .modebar-btn[data-title*="Download"] path,
@@ -345,19 +459,44 @@ html.dark .modebar-btn[data-title*="Image"] path {
   display: none !important;
 }
 
+.modebar-btn:focus-visible {
+  outline: none !important;
+}
+
+.modebar-btn:focus-visible::before {
+  background: rgba(26, 115, 232, 0.12);
+  box-shadow:
+    inset 0 0 0 2px rgba(26, 115, 232, 0.55),
+    0 0 0 3px rgba(26, 115, 232, 0.15);
+}
+
 .hoverlayer .hovertext {
   border-radius: 12px !important;
   box-shadow:
     0 4px 6px rgba(15, 23, 42, 0.04),
-    0 12px 24px rgba(15, 23, 42, 0.1) !important;
+    0 14px 28px rgba(15, 23, 42, 0.12) !important;
 }
 
 .hoverlayer .hovertext path {
-  fill: rgba(255, 255, 255, 0.97) !important;
+  fill: rgba(255, 255, 255, 0.98) !important;
   stroke: rgba(15, 23, 42, 0.06) !important;
 }
 
 html.dark .hoverlayer .hovertext path {
-  fill: rgba(30, 30, 34, 0.97) !important;
+  fill: rgba(30, 30, 34, 0.98) !important;
   stroke: rgba(255, 255, 255, 0.1) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modebar,
+  .modebar-btn,
+  .chart-card,
+  .modebar::after,
+  .modebar-btn.active::before {
+    animation: none !important;
+    transition: none !important;
+  }
+  .modebar-btn:hover {
+    transform: none !important;
+  }
 }
