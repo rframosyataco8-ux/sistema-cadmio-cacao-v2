@@ -47,7 +47,11 @@ export const catalogApi = {
   products: () => api.get('/products'),
   origins: () => api.get('/origins'),
   createProduct: (data) => api.post('/products', data),
+  updateProduct: (id, data) => api.patch(`/products/${id}`, data),
+  deleteProduct: (id) => api.delete(`/products/${id}`),
   createOrigin: (data) => api.post('/origins', data),
+  updateOrigin: (id, data) => api.patch(`/origins/${id}`, data),
+  deleteOrigin: (id) => api.delete(`/origins/${id}`),
 }
 
 export const lotsApi = {
@@ -61,6 +65,8 @@ export const samplesApi = {
   updateLot: (id, data) => api.patch(`/samples/lot/${id}`, data),
   listGrain: (params) => api.get('/samples/grain', { params }),
   createGrain: (data) => api.post('/samples/grain', data),
+  updateGrain: (id, data) => api.patch(`/samples/grain/${id}`, data),
+  deleteGrain: (id) => api.delete(`/samples/grain/${id}`),
 }
 
 export const analyticsApi = {
