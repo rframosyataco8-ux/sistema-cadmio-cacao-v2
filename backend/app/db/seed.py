@@ -28,18 +28,18 @@ def load_lots():
         return _json("real_lot_samples.json")
     parts = []
     for name in [
-        "real_lot_samples_a.json",
-        "real_lot_samples_b.json",
-        "real_lot_samples_a1.json",
-        "real_lot_samples_a2.json",
-        "real_lot_samples_b1.json",
-        "real_lot_samples_b2.json",
+        "real_lot_samples_1.json",
+        "real_lot_samples_2.json",
+        "real_lot_samples_3.json",
+        "real_lot_samples_4.json",
     ]:
         p = DATA / name
         if p.exists():
             parts.extend(_json(name))
     if not parts:
-        raise FileNotFoundError("Faltan archivos real_lot_samples_*.json en app/db/data/")
+        raise FileNotFoundError(
+            "Faltan real_lot_samples_1.json ... _4.json en app/db/data/. Haz git pull."
+        )
     return parts
 
 
@@ -164,7 +164,6 @@ def seed():
         db.commit()
         print(f"Seed REAL → PostgreSQL: {n_lots} lotes, {n_samples} muestras producto, {n_grain} muestras grano")
         print("Login: admin@cadmio.com / admin123")
-        print("El Excel no se usa; todo queda en la base de datos.")
     except Exception as e:
         db.rollback()
         print(f"Error seed: {e}")
