@@ -35,7 +35,7 @@ function useChartTheme() {
       paper_bgcolor: 'rgba(0,0,0,0)',
       plot_bgcolor: dark ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0)',
       font: { family: 'Roboto, system-ui, sans-serif', size: 12, color: text },
-      margin: { t: 36, r: 28, b: 88, l: 64 },
+      margin: { t: 40, r: 28, b: 88, l: 64 },
       dragmode: 'zoom',
       xaxis: {
         gridcolor: grid, zeroline: false, linecolor: grid,
@@ -103,7 +103,6 @@ function threshold() {
   return Number.isFinite(v) ? v : 1.0
 }
 
-/** Modebar nativo de Plotly: mismas opciones (zoom, pan, download, reset…) con diseño pill */
 function buildPlotConfig(filename = 'tendencia-cadmio') {
   return {
     responsive: true,
@@ -378,7 +377,7 @@ export default function BehaviorAnalysis() {
                 layout={{
                   ...theme.layout,
                   height: Math.max(320, byOrigin.length * 42 + 100),
-                  margin: { t: 36, r: 36, b: 52, l: 140 }, bargap: 0.32,
+                  margin: { t: 40, r: 36, b: 52, l: 140 }, bargap: 0.32,
                   xaxis: { ...theme.layout.xaxis, title: { text: 'Cd promedio (mg/kg)', font: { color: theme.colors.softText, size: 12 } } },
                   yaxis: { ...theme.layout.yaxis, title: undefined, automargin: true, tickfont: { size: 11, color: theme.colors.softText } },
                   shapes: [{ type: 'line', yref: 'paper', y0: 0, y1: 1, x0: thr, x1: thr,
