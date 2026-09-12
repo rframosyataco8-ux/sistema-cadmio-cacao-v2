@@ -1,6 +1,6 @@
 """
 Seed: datos REALES del Excel ya extraídos → PostgreSQL.
-El Excel NO se usa en runtime. Nuevos análisis se registran por la web.
+El Excel NO se usa en runtime.
 
 Ejecutar: docker compose exec backend python -m app.db.seed
 """
@@ -26,7 +26,21 @@ def _json(name: str):
 def load_lots():
     if (DATA / "real_lot_samples.json").exists():
         return _json("real_lot_samples.json")
-    return _json("real_lot_samples_a.json") + _json("real_lot_samples_b.json")
+    parts = []
+    for name in [
+        "real_lot_samples_a.json",
+        "real_lot_samples_b.json",
+        "real_lot_samples_a1.json",
+        "real_lot_samples_a2.json",
+        "real_lot_samples_b1.json",
+        "real_lot_samples_b2.json",
+    ]:
+        p = DATA / name
+        if p.exists():
+            parts.extend(_json(name))
+    if not parts:
+        raise FileNotFoundError("Faltan archivos real_lot_samples_*.json en app/db/data/")
+    return parts
 
 
 def get_or_create_origin(db, name: str) -> Origin:
