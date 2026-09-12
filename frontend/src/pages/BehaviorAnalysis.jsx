@@ -37,14 +37,51 @@ const PRODUCTS = [
   { key: 'grano', label: 'Grano de cacao', match: () => true, type: 'grain' },
 ]
 
-const chartLayout = {
-  paper_bgcolor: 'rgba(0,0,0,0)',
-  plot_bgcolor: 'rgba(0,0,0,0)',
-  font: { family: 'Roboto, sans-serif', size: 12, color: '#5f6368' },
-  margin: { t: 40, r: 24, b: 80, l: 56 },
-  xaxis: { gridcolor: '#e8eaed', zeroline: false },
-  yaxis: { gridcolor: '#e8eaed', zeroline: false, title: 'Cd (mg/kg)' },
-  hovermode: 'closest',
+function isDark() {
+  return document.documentElement.classList.contains('dark')
+}
+
+function useChartTheme() {
+  const [dark, setDark] = useState(isDark)
+  useEffect(() => {
+    const obs = new MutationObserver(() => setDark(isDark()))
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+    return () => obs.disconnect()
+  }, [])
+  const grid = dark ? '#333338' : '#e8eaed'
+  const text = dark ? '#b0b3b8' : '#5f6368'
+  const title = dark ? '#f1f3f4' : '#3c4043'
+  return {
+    dark,
+    layout: {
+      paper_bgcolor: 'rgba(0,0,0,0)',
+      plot_bgcolor: 'rgba(0,0,0,0)',
+      font: { family: 'Roboto, sans-serif', size: 12, color: text },
+      margin: { t: 28, r: 28, b: 90, l: 56 },
+      xaxis: {
+        gridcolor: grid,
+        zeroline: false,
+        linecolor: grid,
+        tickfont: { color: text, size: 11 },
+      },
+      yaxis: {
+        gridcolor: grid,
+        zeroline: false,
+        linecolor: grid,
+        title: { text: 'Cd (mg/kg)', font: { color: text, size: 12 } },
+        tickfont: { color: text, size: 11 },
+      },
+      hovermode: 'closest',
+      legend: { font: { color: text } },
+    },
+    colors: {
+      primary: dark ? '#8ab4f8' : '#1a73e8',
+      danger: dark ? '#f28b82' : '#ea4335',
+      success: dark ? '#81c995' : '#34a853',
+      text,
+      title,
+    },
+  }
 }
 
 function stats(values) {
@@ -72,11 +109,18 @@ function countFor(product, lotSamples, grainSamples) {
   ).length
 }
 
+function threshold() {
+  const v = parseFloat(localStorage.getItem('cd_threshold') || '1.0')
+  return Number.isFinite(v) ? v : 1.0
+}
+
 export default function BehaviorAnalysis() {
   const [selected, setSelected] = useState(null)
   const [lotSamples, setLotSamples] = useState([])
   const [grainSamples, setGrainSamples] = useState([])
   const [loading, setLoading] = useState(true)
+  const theme = useChartTheme()
+  const thr = threshold()
 
   const current = PRODUCTS.find((t) => t.key === selected) || null
 
@@ -161,42 +205,43 @@ export default function BehaviorAnalysis() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64 text-gray-500">Cargando análisis...</div>
+      <div className="flex items-center justify-center h-64" style={{ color: 'var(--muted)' }}>
+        Cargando análisis...
+      </div>
     )
   }
 
-  /* ——— Vista de selección (cuadrícula de productos) ——— */
   if (!current) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-medium text-gray-900">Análisis de comportamiento</h1>
-          <p className="text-sm text-gray-500 mt-1">
+      <div className="flex flex-col items-center w-full">
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-medium" style={{ color: 'var(--text)' }}>
+            Análisis de comportamiento
+          </h1>
+          <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
             Selecciona un producto para ver sus gráficos de cadmio
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-4xl">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 w-full max-w-3xl mx-auto">
           {PRODUCTS.map((p) => {
             const n = countFor(p, lotSamples, grainSamples)
             return (
-              <button
-                key={p.key}
-                type="button"
-                onClick={() => setSelected(p.key)}
-                className="aspect-square min-h-[160px] rounded-2xl border-2 border-surface-200 bg-white
-                  hover:border-primary-400 hover:shadow-md hover:bg-primary-50/40
-                  transition-all flex flex-col items-center justify-center gap-3 p-6 text-center"
-              >
-                <div className="w-12 h-12 rounded-xl bg-surface-100 flex items-center justify-center">
+              <button key={p.key} type="button" onClick={() => setSelected(p.key)} className="product-card">
+                <div
+                  className="w-12 h-12 rounded-xl flex items-center justify-center"
+                  style={{ background: 'var(--hover)' }}
+                >
                   {p.type === 'grain' ? (
-                    <Wheat className="w-6 h-6 text-primary-600" />
+                    <Wheat className="w-6 h-6 text-primary-500" />
                   ) : (
-                    <Beaker className="w-6 h-6 text-primary-600" />
+                    <Beaker className="w-6 h-6 text-primary-500" />
                   )}
                 </div>
-                <span className="text-base font-medium text-gray-900 leading-snug">{p.label}</span>
-                <span className="text-xs text-gray-500">{n} muestra{n === 1 ? '' : 's'}</span>
+                <span className="text-base font-medium leading-snug">{p.label}</span>
+                <span className="text-xs" style={{ color: 'var(--muted)' }}>
+                  {n} muestra{n === 1 ? '' : 's'}
+                </span>
               </button>
             )
           })}
@@ -205,21 +250,32 @@ export default function BehaviorAnalysis() {
     )
   }
 
-  /* ——— Vista de resultados del producto elegido ——— */
+  const plotConfig = {
+    responsive: true,
+    displayModeBar: true,
+    displaylogo: false,
+    modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-start gap-4">
         <button
           type="button"
           onClick={() => setSelected(null)}
-          className="mt-1 p-2 rounded-lg border border-surface-200 bg-white hover:bg-surface-50 text-gray-600"
+          className="mt-1 p-2 rounded-lg border"
+          style={{ borderColor: 'var(--border)', background: 'var(--surface)', color: 'var(--muted)' }}
           title="Volver a productos"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-2xl font-medium text-gray-900">{current.label}</h1>
-          <p className="text-sm text-gray-500 mt-1">Análisis de comportamiento del cadmio</p>
+          <h1 className="text-2xl font-medium" style={{ color: 'var(--text)' }}>
+            {current.label}
+          </h1>
+          <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
+            Análisis de comportamiento del cadmio
+          </p>
         </div>
       </div>
 
@@ -232,20 +288,24 @@ export default function BehaviorAnalysis() {
           { label: 'Mediana', value: st.median != null ? `${st.median}` : '—' },
         ].map((k) => (
           <div key={k.label} className="card p-4">
-            <p className="text-xs text-gray-500">{k.label}</p>
-            <p className="text-xl font-medium text-gray-900 mt-1">{k.value}</p>
+            <p className="text-xs" style={{ color: 'var(--muted)' }}>
+              {k.label}
+            </p>
+            <p className="text-xl font-medium mt-1">{k.value}</p>
           </div>
         ))}
       </div>
 
       {!series.length ? (
-        <div className="card p-12 text-center text-gray-400 text-sm">
-          Sin datos de cadmio para <strong>{current.label}</strong>
+        <div className="card p-12 text-center text-sm" style={{ color: 'var(--muted)' }}>
+          Sin datos de cadmio para <strong style={{ color: 'var(--text)' }}>{current.label}</strong>
         </div>
       ) : (
         <>
           <div className="card p-5">
-            <h2 className="text-sm font-medium text-gray-700 mb-2">Tendencia de cadmio</h2>
+            <h2 className="text-sm font-medium mb-3" style={{ color: 'var(--text)' }}>
+              Tendencia de cadmio
+            </h2>
             <Plot
               data={[
                 {
@@ -255,46 +315,53 @@ export default function BehaviorAnalysis() {
                   y: series.map((s) => s.value),
                   text: series.map((s) => s.label),
                   customdata: series.map((s) => s.secondary || ''),
-                  marker: { color: '#1a73e8', size: 8 },
-                  line: { color: '#1a73e8', width: 2 },
+                  marker: {
+                    color: series.map((s) =>
+                      s.value > thr ? theme.colors.danger : theme.colors.primary
+                    ),
+                    size: 9,
+                    line: { width: 0 },
+                  },
+                  line: { color: theme.colors.primary, width: 2.5, shape: 'spline' },
                   hovertemplate:
-                    '%{text}<br>Fecha: %{x}<br>Cd: %{y:.3f} mg/kg<br>%{customdata}<extra></extra>',
+                    '<b>%{text}</b><br>Fecha: %{x}<br>Cd: %{y:.3f} mg/kg<br>%{customdata}<extra></extra>',
                 },
               ]}
               layout={{
-                ...chartLayout,
-                height: 360,
+                ...theme.layout,
+                height: 380,
                 shapes: [
                   {
                     type: 'line',
                     xref: 'paper',
                     x0: 0,
                     x1: 1,
-                    y0: 1.0,
-                    y1: 1.0,
-                    line: { color: '#ea4335', width: 1, dash: 'dash' },
+                    y0: thr,
+                    y1: thr,
+                    line: { color: theme.colors.danger, width: 1.5, dash: 'dash' },
                   },
                 ],
                 annotations: [
                   {
                     xref: 'paper',
                     x: 1,
-                    y: 1.0,
-                    text: 'Umbral 1.0',
+                    y: thr,
+                    text: `Umbral ${thr}`,
                     showarrow: false,
-                    font: { size: 10, color: '#ea4335' },
+                    font: { size: 11, color: theme.colors.danger },
                     xanchor: 'right',
-                    yshift: 10,
+                    yshift: 12,
                   },
                 ],
               }}
-              config={{ responsive: true, displayModeBar: true }}
+              config={plotConfig}
               style={{ width: '100%' }}
+              useResizeHandler
             />
           </div>
 
           <div className="card p-5">
-            <h2 className="text-sm font-medium text-gray-700 mb-2">
+            <h2 className="text-sm font-medium mb-3" style={{ color: 'var(--text)' }}>
               Cadmio por {current.type === 'grain' ? 'guía' : 'lote'}
             </h2>
             <Plot
@@ -304,41 +371,74 @@ export default function BehaviorAnalysis() {
                   x: series.map((s) => s.label),
                   y: series.map((s) => s.value),
                   marker: {
-                    color: series.map((s) => (s.value > 1.0 ? '#ea4335' : '#1a73e8')),
+                    color: series.map((s) =>
+                      s.value > thr ? theme.colors.danger : theme.colors.primary
+                    ),
+                    opacity: 0.9,
                   },
                   customdata: series.map((s) => s.secondary || ''),
                   hovertemplate:
-                    '%{x}<br>Cd: %{y:.3f} mg/kg<br>%{customdata}<extra></extra>',
+                    '<b>%{x}</b><br>Cd: %{y:.3f} mg/kg<br>%{customdata}<extra></extra>',
                 },
               ]}
               layout={{
-                ...chartLayout,
-                height: 380,
-                xaxis: { ...chartLayout.xaxis, tickangle: -45 },
+                ...theme.layout,
+                height: 400,
+                xaxis: { ...theme.layout.xaxis, tickangle: -40 },
+                shapes: [
+                  {
+                    type: 'line',
+                    xref: 'paper',
+                    x0: 0,
+                    x1: 1,
+                    y0: thr,
+                    y1: thr,
+                    line: { color: theme.colors.danger, width: 1.5, dash: 'dash' },
+                  },
+                ],
               }}
-              config={{ responsive: true, displayModeBar: true }}
+              config={plotConfig}
               style={{ width: '100%' }}
+              useResizeHandler
             />
           </div>
 
           {byOrigin.length > 0 && (
             <div className="card p-5">
-              <h2 className="text-sm font-medium text-gray-700 mb-2">Cadmio promedio por origen</h2>
+              <h2 className="text-sm font-medium mb-3" style={{ color: 'var(--text)' }}>
+                Cadmio promedio por origen
+              </h2>
               <Plot
                 data={[
                   {
                     type: 'bar',
-                    x: byOrigin.map((o) => o.name),
-                    y: byOrigin.map((o) => +o.avg.toFixed(3)),
+                    orientation: 'h',
+                    y: byOrigin.map((o) => o.name),
+                    x: byOrigin.map((o) => +o.avg.toFixed(3)),
                     customdata: byOrigin.map((o) => o.n),
-                    marker: { color: '#34a853' },
+                    marker: {
+                      color: byOrigin.map((o) =>
+                        o.avg > thr ? theme.colors.danger : theme.colors.success
+                      ),
+                      opacity: 0.9,
+                    },
                     hovertemplate:
-                      '%{x}<br>Promedio: %{y:.3f} mg/kg<br>n=%{customdata}<extra></extra>',
+                      '<b>%{y}</b><br>Promedio: %{x:.3f} mg/kg<br>n=%{customdata}<extra></extra>',
                   },
                 ]}
-                layout={{ ...chartLayout, height: 340 }}
-                config={{ responsive: true, displayModeBar: false }}
+                layout={{
+                  ...theme.layout,
+                  height: Math.max(280, byOrigin.length * 36 + 80),
+                  margin: { t: 20, r: 28, b: 40, l: 120 },
+                  xaxis: {
+                    ...theme.layout.xaxis,
+                    title: { text: 'Cd promedio (mg/kg)', font: { color: theme.colors.text } },
+                  },
+                  yaxis: { ...theme.layout.yaxis, title: undefined, automargin: true },
+                }}
+                config={{ ...plotConfig, displayModeBar: false }}
                 style={{ width: '100%' }}
+                useResizeHandler
               />
             </div>
           )}
