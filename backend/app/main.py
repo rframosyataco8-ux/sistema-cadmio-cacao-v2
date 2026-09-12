@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 from app.core.config import settings
 from app.db.session import engine, Base, SessionLocal
 from app.core.security import get_password_hash
@@ -8,10 +9,18 @@ from app.models.user import User, UserRole
 from app.api import auth, catalog, lots, samples, analytics
 
 
+def migrate_schema():
+    """Añade columnas nuevas sin borrar datos."""
+    with engine.begin() as conn:
+        try:
+            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT"))
+        except Exception as e:
+            print(f"migrate avatar: {e}")
+
+
 def seed_admin():
     db = SessionLocal()
     try:
-        # Acepta ambos emails por compatibilidad
         admin = db.query(User).filter(
             (User.email == "admin@cadmio.com") | (User.email == "admin@cadmio.local")
         ).first()
@@ -27,7 +36,6 @@ def seed_admin():
             db.commit()
             print("Usuario admin creado: admin@cadmio.com / admin123")
         elif admin.email == "admin@cadmio.local":
-            # Migrar email antiguo
             admin.email = "admin@cadmio.com"
             db.commit()
             print("Admin migrado a admin@cadmio.com")
@@ -38,6 +46,7 @@ def seed_admin():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    migrate_schema()
     seed_admin()
     yield
 
