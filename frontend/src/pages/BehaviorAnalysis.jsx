@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Plot from 'react-plotly.js'
 import { samplesApi } from '../lib/api'
 import { ArrowLeft, Beaker, Wheat } from 'lucide-react'
+import { canSeeProduct } from '../lib/permissions'
 
 const PRODUCTS = [
   {
@@ -48,21 +49,23 @@ function useChartTheme() {
     obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
     return () => obs.disconnect()
   }, [])
-  const grid = dark ? '#333338' : '#e8eaed'
-  const text = dark ? '#b0b3b8' : '#5f6368'
-  const title = dark ? '#f1f3f4' : '#3c4043'
+  const grid = dark ? '#3c4043' : '#e8eaed'
+  const text = dark ? '#e8eaed' : '#5f6368'
   return {
     dark,
     layout: {
       paper_bgcolor: 'rgba(0,0,0,0)',
-      plot_bgcolor: 'rgba(0,0,0,0)',
+      plot_bgcolor: dark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0)',
       font: { family: 'Roboto, sans-serif', size: 12, color: text },
-      margin: { t: 28, r: 28, b: 90, l: 56 },
+      margin: { t: 32, r: 32, b: 96, l: 60 },
       xaxis: {
         gridcolor: grid,
         zeroline: false,
         linecolor: grid,
         tickfont: { color: text, size: 11 },
+        showspikes: true,
+        spikemode: 'across',
+        spikethickness: 1,
       },
       yaxis: {
         gridcolor: grid,
@@ -70,16 +73,17 @@ function useChartTheme() {
         linecolor: grid,
         title: { text: 'Cd (mg/kg)', font: { color: text, size: 12 } },
         tickfont: { color: text, size: 11 },
+        showspikes: true,
       },
-      hovermode: 'closest',
-      legend: { font: { color: text } },
+      hovermode: 'x unified',
+      legend: { font: { color: text }, bgcolor: 'rgba(0,0,0,0)' },
     },
     colors: {
       primary: dark ? '#8ab4f8' : '#1a73e8',
       danger: dark ? '#f28b82' : '#ea4335',
       success: dark ? '#81c995' : '#34a853',
+      muted: dark ? '#9aa0a6' : '#80868b',
       text,
-      title,
     },
   }
 }
@@ -122,7 +126,8 @@ export default function BehaviorAnalysis() {
   const theme = useChartTheme()
   const thr = threshold()
 
-  const current = PRODUCTS.find((t) => t.key === selected) || null
+  const allowedProducts = useMemo(() => PRODUCTS.filter((p) => canSeeProduct(p.key)), [])
+  const current = allowedProducts.find((t) => t.key === selected) || null
 
   useEffect(() => {
     ;(async () => {
@@ -211,10 +216,11 @@ export default function BehaviorAnalysis() {
     )
   }
 
+  /* Título a la izquierda; tarjetas centradas */
   if (!current) {
     return (
-      <div className="flex flex-col items-center w-full">
-        <div className="text-center mb-8">
+      <div className="space-y-8">
+        <div>
           <h1 className="text-2xl font-medium" style={{ color: 'var(--text)' }}>
             Análisis de comportamiento
           </h1>
@@ -223,28 +229,30 @@ export default function BehaviorAnalysis() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 w-full max-w-3xl mx-auto">
-          {PRODUCTS.map((p) => {
-            const n = countFor(p, lotSamples, grainSamples)
-            return (
-              <button key={p.key} type="button" onClick={() => setSelected(p.key)} className="product-card">
-                <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center"
-                  style={{ background: 'var(--hover)' }}
-                >
-                  {p.type === 'grain' ? (
-                    <Wheat className="w-6 h-6 text-primary-500" />
-                  ) : (
-                    <Beaker className="w-6 h-6 text-primary-500" />
-                  )}
-                </div>
-                <span className="text-base font-medium leading-snug">{p.label}</span>
-                <span className="text-xs" style={{ color: 'var(--muted)' }}>
-                  {n} muestra{n === 1 ? '' : 's'}
-                </span>
-              </button>
-            )
-          })}
+        <div className="flex justify-center">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 w-full max-w-3xl">
+            {allowedProducts.map((p) => {
+              const n = countFor(p, lotSamples, grainSamples)
+              return (
+                <button key={p.key} type="button" onClick={() => setSelected(p.key)} className="product-card">
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center"
+                    style={{ background: 'var(--hover)' }}
+                  >
+                    {p.type === 'grain' ? (
+                      <Wheat className="w-6 h-6 text-primary-500" />
+                    ) : (
+                      <Beaker className="w-6 h-6 text-primary-500" />
+                    )}
+                  </div>
+                  <span className="text-base font-medium leading-snug">{p.label}</span>
+                  <span className="text-xs" style={{ color: 'var(--muted)' }}>
+                    {n} muestra{n === 1 ? '' : 's'}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
         </div>
       </div>
     )
@@ -256,6 +264,20 @@ export default function BehaviorAnalysis() {
     displaylogo: false,
     modeBarButtonsToRemove: ['lasso2d', 'select2d'],
   }
+
+  const avgLine = st.avg != null
+    ? [
+        {
+          type: 'line',
+          xref: 'paper',
+          x0: 0,
+          x1: 1,
+          y0: st.avg,
+          y1: st.avg,
+          line: { color: theme.colors.muted, width: 1, dash: 'dot' },
+        },
+      ]
+    : []
 
   return (
     <div className="space-y-6">
@@ -311,6 +333,7 @@ export default function BehaviorAnalysis() {
                 {
                   type: 'scatter',
                   mode: 'lines+markers',
+                  name: 'Cd',
                   x: series.map((s) => s.date || s.label),
                   y: series.map((s) => s.value),
                   text: series.map((s) => s.label),
@@ -319,17 +342,17 @@ export default function BehaviorAnalysis() {
                     color: series.map((s) =>
                       s.value > thr ? theme.colors.danger : theme.colors.primary
                     ),
-                    size: 9,
-                    line: { width: 0 },
+                    size: 10,
+                    line: { color: theme.dark ? '#1a1a1c' : '#fff', width: 1.5 },
                   },
-                  line: { color: theme.colors.primary, width: 2.5, shape: 'spline' },
+                  line: { color: theme.colors.primary, width: 2.5, shape: 'spline', smoothing: 0.6 },
                   hovertemplate:
-                    '<b>%{text}</b><br>Fecha: %{x}<br>Cd: %{y:.3f} mg/kg<br>%{customdata}<extra></extra>',
+                    '<b>%{text}</b><br>Fecha: %{x}<br>Cd: <b>%{y:.3f}</b> mg/kg<br>%{customdata}<extra></extra>',
                 },
               ]}
               layout={{
                 ...theme.layout,
-                height: 380,
+                height: 400,
                 shapes: [
                   {
                     type: 'line',
@@ -340,6 +363,7 @@ export default function BehaviorAnalysis() {
                     y1: thr,
                     line: { color: theme.colors.danger, width: 1.5, dash: 'dash' },
                   },
+                  ...avgLine,
                 ],
                 annotations: [
                   {
@@ -352,7 +376,19 @@ export default function BehaviorAnalysis() {
                     xanchor: 'right',
                     yshift: 12,
                   },
-                ],
+                  st.avg != null
+                    ? {
+                        xref: 'paper',
+                        x: 0,
+                        y: st.avg,
+                        text: `Prom. ${st.avg}`,
+                        showarrow: false,
+                        font: { size: 10, color: theme.colors.muted },
+                        xanchor: 'left',
+                        yshift: 12,
+                      }
+                    : null,
+                ].filter(Boolean),
               }}
               config={plotConfig}
               style={{ width: '100%' }}
@@ -374,16 +410,18 @@ export default function BehaviorAnalysis() {
                     color: series.map((s) =>
                       s.value > thr ? theme.colors.danger : theme.colors.primary
                     ),
-                    opacity: 0.9,
+                    opacity: 0.92,
+                    line: { width: 0 },
                   },
                   customdata: series.map((s) => s.secondary || ''),
                   hovertemplate:
-                    '<b>%{x}</b><br>Cd: %{y:.3f} mg/kg<br>%{customdata}<extra></extra>',
+                    '<b>%{x}</b><br>Cd: <b>%{y:.3f}</b> mg/kg<br>%{customdata}<extra></extra>',
                 },
               ]}
               layout={{
                 ...theme.layout,
-                height: 400,
+                height: 420,
+                bargap: 0.25,
                 xaxis: { ...theme.layout.xaxis, tickangle: -40 },
                 shapes: [
                   {
@@ -420,16 +458,17 @@ export default function BehaviorAnalysis() {
                       color: byOrigin.map((o) =>
                         o.avg > thr ? theme.colors.danger : theme.colors.success
                       ),
-                      opacity: 0.9,
+                      opacity: 0.92,
                     },
                     hovertemplate:
-                      '<b>%{y}</b><br>Promedio: %{x:.3f} mg/kg<br>n=%{customdata}<extra></extra>',
+                      '<b>%{y}</b><br>Promedio: <b>%{x:.3f}</b> mg/kg<br>n=%{customdata}<extra></extra>',
                   },
                 ]}
                 layout={{
                   ...theme.layout,
-                  height: Math.max(280, byOrigin.length * 36 + 80),
-                  margin: { t: 20, r: 28, b: 40, l: 120 },
+                  height: Math.max(300, byOrigin.length * 38 + 90),
+                  margin: { t: 24, r: 32, b: 48, l: 130 },
+                  bargap: 0.3,
                   xaxis: {
                     ...theme.layout.xaxis,
                     title: { text: 'Cd promedio (mg/kg)', font: { color: theme.colors.text } },
