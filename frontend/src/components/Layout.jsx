@@ -69,12 +69,12 @@ export default function Layout({ user, setUser }) {
 
   const linkClass = ({ isActive }) =>
     `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-      isActive ? 'bg-primary-50 text-primary-600' : ''
+      isActive ? 'nav-active' : ''
     } ${collapsed ? 'justify-center px-2' : ''}`
 
   const subLinkClass = ({ isActive }) =>
     `flex items-center gap-2 pl-11 pr-3 py-2 rounded-lg text-sm transition-colors ${
-      isActive ? 'bg-primary-50 text-primary-600 font-medium' : ''
+      isActive ? 'nav-active font-medium' : ''
     }`
 
   const displayName = user?.full_name || user?.email || 'Usuario'
@@ -94,7 +94,6 @@ export default function Layout({ user, setUser }) {
         className={`${sideW} border-r flex flex-col fixed h-full z-20 transition-all duration-200`}
         style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}
       >
-        {/* Header + botón contraer */}
         <div
           className={`border-b flex items-center ${collapsed ? 'flex-col gap-2 py-4 px-2' : 'px-4 py-5 gap-3'}`}
           style={{ borderColor: 'var(--border)' }}
@@ -146,7 +145,7 @@ export default function Layout({ user, setUser }) {
                 }
               }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                analysisOpen ? 'bg-primary-50 text-primary-600' : ''
+                analysisOpen ? 'nav-active' : ''
               } ${collapsed ? 'justify-center px-2' : ''}`}
               style={!analysisOpen ? { color: 'var(--muted)' } : undefined}
             >
@@ -211,6 +210,7 @@ export default function Layout({ user, setUser }) {
                     type="button"
                     onClick={() => openSettings('general')}
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:opacity-80"
+                    style={{ color: 'var(--text)' }}
                   >
                     <Settings className="w-4 h-4" style={{ color: 'var(--muted)' }} />
                     Configuración
@@ -220,6 +220,7 @@ export default function Layout({ user, setUser }) {
                   type="button"
                   onClick={() => openSettings('cuenta')}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:opacity-80"
+                  style={{ color: 'var(--text)' }}
                 >
                   <User className="w-4 h-4" style={{ color: 'var(--muted)' }} />
                   Cuenta
@@ -228,6 +229,7 @@ export default function Layout({ user, setUser }) {
                   type="button"
                   onClick={() => openSettings('ayuda')}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:opacity-80"
+                  style={{ color: 'var(--text)' }}
                 >
                   <HelpCircle className="w-4 h-4" style={{ color: 'var(--muted)' }} />
                   Ayuda
@@ -236,6 +238,7 @@ export default function Layout({ user, setUser }) {
                   type="button"
                   onClick={() => openSettings('acerca')}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:opacity-80"
+                  style={{ color: 'var(--text)' }}
                 >
                   <Info className="w-4 h-4" style={{ color: 'var(--muted)' }} />
                   Acerca del sistema
