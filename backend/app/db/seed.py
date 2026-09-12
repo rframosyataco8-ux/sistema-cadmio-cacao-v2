@@ -1,26 +1,36 @@
 """
 Seed: datos REALES del Excel → PostgreSQL.
-- Torta trozada estándar: solo plaguicidas (hoja dedicada)
+- Torta trozada estándar: solo plaguicidas
 - Torta de cacao: cadmio + plaguicidas
 Ejecutar: docker compose exec backend python -m app.db.seed
 """
 from __future__ import annotations
 import json
-import zlib
-import base64
 from datetime import date
+from pathlib import Path
 from app.db.session import SessionLocal, engine, Base
 from app.core.security import get_password_hash
 from app.models.user import User, UserRole
 from app.models.catalog import Product, Origin
 from app.models.lot import Lot, LotOrigin
 from app.models.sample import SampleLot, SampleGrain
-from app.db.data.real_data_blob import BLOB
 
 
 def load_real_data():
-    raw = zlib.decompress(base64.b64decode(BLOB))
-    return json.loads(raw.decode("utf-8"))
+    base = Path(__file__).resolve().parent / "data"
+    grain_path = base / "real_grain.json"
+    lots_path = base / "real_lots.json"
+    lots_a = base / "real_lots_a.json"
+    lots_b = base / "real_lots_b.json"
+    if lots_path.exists():
+        lots = json.loads(lots_path.read_text(encoding="utf-8"))
+    elif lots_a.exists() and lots_b.exists():
+        lots = json.loads(lots_a.read_text(encoding="utf-8")) + json.loads(lots_b.read_text(encoding="utf-8"))
+    else:
+        raise FileNotFoundError("Faltan archivos de lotes en app/db/data")
+    if not grain_path.exists():
+        raise FileNotFoundError("Falta real_grain.json en app/db/data")
+    return {"lots": lots, "grain": json.loads(grain_path.read_text(encoding="utf-8"))}
 
 
 def get_or_create_origin(db, name: str) -> Origin:
