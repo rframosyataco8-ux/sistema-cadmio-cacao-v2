@@ -1,5 +1,7 @@
 """
-Seed: datos REALES del Excel → PostgreSQL (sin depender del Excel).
+Seed: datos REALES del Excel → PostgreSQL.
+- Torta trozada estándar: solo plaguicidas (hoja dedicada)
+- Torta de cacao: cadmio + plaguicidas
 Ejecutar: docker compose exec backend python -m app.db.seed
 """
 from __future__ import annotations
@@ -72,46 +74,90 @@ def seed():
             admin.email = "admin@cadmio.com"
         db.commit()
 
+        from sqlalchemy import text
+        try:
+            db.execute(text("ALTER TABLE lots DROP CONSTRAINT IF EXISTS lots_lot_code_key"))
+            db.execute(text(
+                "DO $$ BEGIN "
+                "IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'uq_lot_product_code') THEN "
+                "ALTER TABLE lots ADD CONSTRAINT uq_lot_product_code UNIQUE (product_id, lot_code); "
+                "END IF; END $$;"
+            ))
+            db.commit()
+        except Exception as mig_err:
+            db.rollback()
+            print(f"Nota migración lot_code: {mig_err}")
+
+        get_or_create_product(db, "Torta trozada estándar")
+        db.commit()
+
         data = load_real_data()
         lot_rows = data["lots"]
         grain_rows = data["grain"]
 
-        n_lots = n_samples = 0
+        n_lots = n_samples_new = n_samples_upd = 0
         for row in lot_rows:
             product = get_or_create_product(db, row["product"])
-            lot_code = str(row["lot_code"]).strip()
-            lot = db.query(Lot).filter(Lot.lot_code == lot_code).first()
+            lot = (
+                db.query(Lot)
+                .filter(Lot.product_id == product.id, Lot.lot_code == row["lot_code"])
+                .first()
+            )
             if not lot:
-                lot = Lot(product_id=product.id, lot_code=lot_code)
+                lot = Lot(product_id=product.id, lot_code=row["lot_code"])
                 db.add(lot)
                 db.flush()
                 n_lots += 1
-                for oname in parse_origins(row.get("origins")):
-                    o = get_or_create_origin(db, oname)
-                    if not db.query(LotOrigin).filter(
-                        LotOrigin.lot_id == lot.id, LotOrigin.origin_id == o.id
-                    ).first():
-                        db.add(LotOrigin(lot_id=lot.id, origin_id=o.id))
-            if db.query(SampleLot).filter(SampleLot.lot_id == lot.id).first():
-                continue
+
+            for oname in parse_origins(row.get("origins")):
+                o = get_or_create_origin(db, oname)
+                if not db.query(LotOrigin).filter(
+                    LotOrigin.lot_id == lot.id, LotOrigin.origin_id == o.id
+                ).first():
+                    db.add(LotOrigin(lot_id=lot.id, origin_id=o.id))
+
             send_d = None
             if row.get("date"):
                 try:
                     send_d = date.fromisoformat(str(row["date"])[:10])
                 except Exception:
                     pass
-            db.add(SampleLot(
-                lot_id=lot.id,
-                cadmium_mg_kg=row.get("cd"),
-                has_sample=bool(row.get("has_sample")),
-                sample_weight_g=row.get("weight_g"),
-                pesticides=row.get("pesticides"),
-                observation=row.get("obs"),
-                send_date=send_d,
-                producer_code=row.get("producer_code"),
-                producer_name=row.get("producer_name"),
-            ))
-            n_samples += 1
+
+            sample = db.query(SampleLot).filter(SampleLot.lot_id == lot.id).first()
+            if sample:
+                changed = False
+                pest = row.get("pesticides")
+                if pest is not None and sample.pesticides != pest:
+                    sample.pesticides = pest
+                    changed = True
+                if row.get("cd") is not None and sample.cadmium_mg_kg is None:
+                    sample.cadmium_mg_kg = row["cd"]
+                    sample.has_sample = bool(row.get("has_sample", True))
+                    changed = True
+                if row.get("obs") and not sample.observation:
+                    sample.observation = row["obs"]
+                    changed = True
+                if send_d and not sample.send_date:
+                    sample.send_date = send_d
+                    changed = True
+                if row.get("weight_g") and not sample.sample_weight_g:
+                    sample.sample_weight_g = row["weight_g"]
+                    changed = True
+                if changed:
+                    n_samples_upd += 1
+            else:
+                db.add(SampleLot(
+                    lot_id=lot.id,
+                    cadmium_mg_kg=row.get("cd"),
+                    has_sample=bool(row.get("has_sample", True)),
+                    sample_weight_g=row.get("weight_g"),
+                    pesticides=row.get("pesticides"),
+                    observation=row.get("obs"),
+                    send_date=send_d,
+                    producer_code=row.get("producer_code"),
+                    producer_name=row.get("producer_name"),
+                ))
+                n_samples_new += 1
 
         n_grain = 0
         for row in grain_rows:
@@ -133,7 +179,7 @@ def seed():
                 origin_id=o.id,
                 guia_code=guia,
                 cadmium_mg_kg=row.get("cd"),
-                has_sample=bool(row.get("has_sample")),
+                has_sample=bool(row.get("has_sample", True)),
                 sample_weight_g=row.get("weight_g"),
                 observation=row.get("obs"),
                 send_date=send_d,
@@ -141,7 +187,10 @@ def seed():
             n_grain += 1
 
         db.commit()
-        print(f"Seed REAL → PostgreSQL: {n_lots} lotes, {n_samples} muestras producto, {n_grain} muestras grano")
+        print(
+            f"Seed OK: {n_lots} lotes nuevos, {n_samples_new} muestras nuevas, "
+            f"{n_samples_upd} actualizadas, {n_grain} grano"
+        )
         print("Login: admin@cadmio.com / admin123")
     except Exception as e:
         db.rollback()
