@@ -60,9 +60,12 @@ def create_lot(
 ):
     if not db.get(Product, payload.product_id):
         raise HTTPException(404, "Producto no encontrado")
-    exists = db.query(Lot).filter(Lot.lot_code == payload.lot_code).first()
+    exists = db.query(Lot).filter(
+        Lot.product_id == payload.product_id,
+        Lot.lot_code == payload.lot_code,
+    ).first()
     if exists:
-        raise HTTPException(400, "Ya existe un lote con ese código")
+        raise HTTPException(400, "Ya existe un lote con ese código para este producto")
     lot = Lot(
         product_id=payload.product_id,
         lot_code=payload.lot_code,
