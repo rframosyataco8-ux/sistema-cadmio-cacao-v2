@@ -34,6 +34,12 @@ export const authApi = {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     })
   },
+  me: () => api.get('/auth/me'),
+  updateProfile: (data) => api.patch('/auth/me', data),
+  changePassword: (data) => api.post('/auth/me/password', data),
+  register: (data) => api.post('/auth/register', data),
+  listUsers: () => api.get('/auth/users'),
+  setActive: (userId, active) => api.patch(`/auth/users/${userId}/active`, null, { params: { active } }),
 }
 
 export const catalogApi = {
