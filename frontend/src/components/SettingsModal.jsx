@@ -34,6 +34,7 @@ export default function SettingsModal({ open, onClose, user, setUser, initialTab
       setName(user?.full_name || '')
       setAvatar(user?.avatar || null)
       setMsg('')
+      setDark(document.documentElement.classList.contains('dark'))
     }
   }, [open, initialTab, user])
 
@@ -45,6 +46,7 @@ export default function SettingsModal({ open, onClose, user, setUser, initialTab
 
   if (!open) return null
 
+  // Apariencia (tema oscuro) disponible para TODOS
   const tabs = isAdmin
     ? [
         { id: 'cuenta', label: 'Cuenta', icon: User },
@@ -56,6 +58,7 @@ export default function SettingsModal({ open, onClose, user, setUser, initialTab
       ]
     : [
         { id: 'cuenta', label: 'Cuenta', icon: User },
+        { id: 'apariencia', label: 'Apariencia', icon: dark ? Moon : Sun },
         { id: 'ayuda', label: 'Ayuda', icon: HelpCircle },
         { id: 'acerca', label: 'Acerca', icon: Info },
       ]
@@ -106,7 +109,6 @@ export default function SettingsModal({ open, onClose, user, setUser, initialTab
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
-        {/* Sidebar tabs */}
         <div
           className="w-48 shrink-0 border-r p-3 space-y-1 overflow-y-auto"
           style={{ borderColor: 'var(--border)' }}
@@ -123,7 +125,7 @@ export default function SettingsModal({ open, onClose, user, setUser, initialTab
                 setMsg('')
               }}
               className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left transition-colors ${
-                tab === t.id ? 'bg-primary-50 text-primary-600 font-medium' : 'hover:opacity-80'
+                tab === t.id ? 'nav-active font-medium' : 'hover:opacity-80'
               }`}
               style={tab !== t.id ? { color: 'var(--muted)' } : undefined}
             >
@@ -133,7 +135,6 @@ export default function SettingsModal({ open, onClose, user, setUser, initialTab
           ))}
         </div>
 
-        {/* Content */}
         <div className="flex-1 flex flex-col min-w-0">
           <div
             className="flex items-center justify-between px-5 py-3 border-b"
@@ -149,7 +150,7 @@ export default function SettingsModal({ open, onClose, user, setUser, initialTab
 
           <div className="flex-1 overflow-y-auto p-5 space-y-4">
             {msg && (
-              <div className="text-sm px-3 py-2 rounded-lg" style={{ background: 'var(--border)' }}>
+              <div className="text-sm px-3 py-2 rounded-lg" style={{ background: 'var(--hover)' }}>
                 {msg}
               </div>
             )}
@@ -183,7 +184,6 @@ export default function SettingsModal({ open, onClose, user, setUser, initialTab
                   <label className="label">Correo</label>
                   <input className="input" value={user?.email || ''} readOnly />
                 </div>
-                {/* Rol solo visible para admin en su propia vista de info, no para usuarios normales */}
                 {isAdmin && (
                   <div>
                     <label className="label">Rol</label>
@@ -196,7 +196,8 @@ export default function SettingsModal({ open, onClose, user, setUser, initialTab
               </div>
             )}
 
-            {tab === 'apariencia' && isAdmin && (
+            {/* Tema oscuro — TODOS los usuarios */}
+            {tab === 'apariencia' && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -211,6 +212,7 @@ export default function SettingsModal({ open, onClose, user, setUser, initialTab
                     className={`w-12 h-7 rounded-full transition-colors relative ${
                       dark ? 'bg-primary-500' : 'bg-gray-300'
                     }`}
+                    aria-label="Alternar tema oscuro"
                   >
                     <span
                       className={`absolute top-0.5 w-6 h-6 rounded-full bg-white shadow transition-transform ${
@@ -338,9 +340,7 @@ export default function SettingsModal({ open, onClose, user, setUser, initialTab
                   <strong style={{ color: 'var(--text)' }}>Comportamiento:</strong> gráficos de
                   cadmio por producto.
                 </p>
-                <p>
-                  Las muestras se registran por peso (lote o guía de origen).
-                </p>
+                <p>Las muestras se registran por peso (lote o guía de origen).</p>
               </div>
             )}
 
