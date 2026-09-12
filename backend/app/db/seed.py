@@ -1,10 +1,12 @@
 """
-Seed con datos REALES ya extraídos del Excel.
-Se insertan UNA VEZ en PostgreSQL. El sistema NO usa el Excel en runtime.
+Seed: datos REALES del Excel ya extraídos → PostgreSQL.
+El Excel NO se usa en runtime. Nuevos análisis se registran por la web.
 
 Ejecutar: docker compose exec backend python -m app.db.seed
 """
 from __future__ import annotations
+import json
+from pathlib import Path
 from datetime import date
 from app.db.session import SessionLocal, engine, Base
 from app.core.security import get_password_hash
@@ -12,8 +14,19 @@ from app.models.user import User, UserRole
 from app.models.catalog import Product, Origin
 from app.models.lot import Lot, LotOrigin
 from app.models.sample import SampleLot, SampleGrain
-from app.db.data.real_lots import LOT_SAMPLES
-from app.db.data.real_grains import GRAIN_SAMPLES
+
+DATA = Path(__file__).resolve().parent / "data"
+
+
+def _json(name: str):
+    with open(DATA / name, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def load_lots():
+    if (DATA / "real_lot_samples.json").exists():
+        return _json("real_lot_samples.json")
+    return _json("real_lot_samples_a.json") + _json("real_lot_samples_b.json")
 
 
 def get_or_create_origin(db, name: str) -> Origin:
@@ -67,14 +80,16 @@ def seed():
             admin.email = "admin@cadmio.com"
         db.commit()
 
-        n_lots = 0
-        n_samples = 0
-        for row in LOT_SAMPLES:
+        lot_rows = load_lots()
+        grain_rows = _json("real_grain_samples.json")
+
+        n_lots = n_samples = 0
+        for row in lot_rows:
             product = get_or_create_product(db, row["product"])
             lot_code = str(row["lot_code"]).strip()
             lot = db.query(Lot).filter(Lot.lot_code == lot_code).first()
             if not lot:
-                lot = Lot(product_id=product.id, lot_code=lot_code, weight_kg=None)
+                lot = Lot(product_id=product.id, lot_code=lot_code)
                 db.add(lot)
                 db.flush()
                 n_lots += 1
@@ -84,17 +99,14 @@ def seed():
                         LotOrigin.lot_id == lot.id, LotOrigin.origin_id == o.id
                     ).first():
                         db.add(LotOrigin(lot_id=lot.id, origin_id=o.id))
-
             if db.query(SampleLot).filter(SampleLot.lot_id == lot.id).first():
                 continue
-
             send_d = None
             if row.get("date"):
                 try:
                     send_d = date.fromisoformat(str(row["date"])[:10])
                 except Exception:
-                    send_d = None
-
+                    pass
             db.add(SampleLot(
                 lot_id=lot.id,
                 cadmium_mg_kg=row.get("cd"),
@@ -109,7 +121,7 @@ def seed():
             n_samples += 1
 
         n_grain = 0
-        for row in GRAIN_SAMPLES:
+        for row in grain_rows:
             o = get_or_create_origin(db, row.get("origin") or "SIN ORIGEN")
             guia = str(row.get("guia_code") or "").strip()
             if not guia:
@@ -123,7 +135,7 @@ def seed():
                 try:
                     send_d = date.fromisoformat(str(row["date"])[:10])
                 except Exception:
-                    send_d = None
+                    pass
             db.add(SampleGrain(
                 origin_id=o.id,
                 guia_code=guia,
@@ -136,9 +148,9 @@ def seed():
             n_grain += 1
 
         db.commit()
-        print(f"Seed REAL en PostgreSQL: {n_lots} lotes, {n_samples} muestras producto, {n_grain} muestras grano")
+        print(f"Seed REAL → PostgreSQL: {n_lots} lotes, {n_samples} muestras producto, {n_grain} muestras grano")
         print("Login: admin@cadmio.com / admin123")
-        print("(El Excel ya no se usa; todo queda en la base de datos)")
+        print("El Excel no se usa; todo queda en la base de datos.")
     except Exception as e:
         db.rollback()
         print(f"Error seed: {e}")
