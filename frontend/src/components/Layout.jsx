@@ -18,6 +18,7 @@ import {
   Moon,
 } from 'lucide-react'
 import SettingsModal from './SettingsModal'
+import { canAccess } from '../lib/permissions'
 
 export default function Layout({ user, setUser }) {
   const navigate = useNavigate()
@@ -31,6 +32,11 @@ export default function Layout({ user, setUser }) {
   const [settingsTab, setSettingsTab] = useState('cuenta')
   const menuRef = useRef(null)
   const isAdmin = user?.role === 'admin'
+  const showDash = canAccess('dashboard', user)
+  const showResults = canAccess('results', user)
+  const showBehavior = canAccess('behavior', user)
+  const showCatalog = canAccess('products_catalog', user)
+  const showAnalysis = showResults || showBehavior
 
   useEffect(() => {
     const theme = localStorage.getItem('theme')
@@ -122,73 +128,85 @@ export default function Layout({ user, setUser }) {
         </div>
 
         <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto overflow-x-hidden">
-          <NavLink
-            to="/"
-            end
-            title="Dashboard"
-            className={linkClass}
-            style={({ isActive }) => (!isActive ? { color: 'var(--muted)' } : undefined)}
-          >
-            <LayoutDashboard className="w-5 h-5 shrink-0" />
-            {!collapsed && 'Dashboard'}
-          </NavLink>
-
-          <div>
-            <button
-              type="button"
-              title="Análisis Producto"
-              onClick={() => {
-                if (collapsed) {
-                  setCollapsed(false)
-                  setOpen(true)
-                } else {
-                  setOpen((v) => !v)
-                }
-              }}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                analysisOpen ? 'nav-active' : ''
-              } ${collapsed ? 'justify-center px-2' : ''}`}
-              style={!analysisOpen ? { color: 'var(--muted)' } : undefined}
+          {showDash && (
+            <NavLink
+              to="/"
+              end
+              title="Dashboard"
+              className={linkClass}
+              style={({ isActive }) => (!isActive ? { color: 'var(--muted)' } : undefined)}
             >
-              <Beaker className="w-5 h-5 shrink-0" />
-              {!collapsed && (
-                <>
-                  <span className="flex-1 text-left">Análisis Producto</span>
-                  <ChevronDown className={`w-4 h-4 transition-transform ${open ? 'rotate-180' : ''}`} />
-                </>
-              )}
-            </button>
-            {open && !collapsed && (
-              <div className="mt-1 space-y-0.5">
-                <NavLink
-                  to="/samples/lot"
-                  className={subLinkClass}
-                  style={({ isActive }) => (!isActive ? { color: 'var(--muted)' } : undefined)}
-                >
-                  <Table2 className="w-4 h-4" />
-                  Resultado
-                </NavLink>
-                <NavLink
-                  to="/analisis/comportamiento"
-                  className={subLinkClass}
-                  style={({ isActive }) => (!isActive ? { color: 'var(--muted)' } : undefined)}
-                >
-                  <LineChart className="w-4 h-4" />
-                  Análisis de comportamiento
-                </NavLink>
-              </div>
-            )}
-          </div>
+              <LayoutDashboard className="w-5 h-5 shrink-0" />
+              {!collapsed && 'Dashboard'}
+            </NavLink>
+          )}
 
-          <NavLink
-            to="/products"
-            title="Productos & Orígenes"
-            className={linkClass}
-            style={({ isActive }) => (!isActive ? { color: 'var(--muted)' } : undefined)}
-          >
-            <Package className="w-5 h-5 shrink-0" />
-            {!collapsed && 'Productos & Orígenes'}
-          </NavLink>
+          {showAnalysis && (
+            <div>
+              <button
+                type="button"
+                title="Análisis Producto"
+                onClick={() => {
+                  if (collapsed) {
+                    setCollapsed(false)
+                    setOpen(true)
+                  } else {
+                    setOpen((v) => !v)
+                  }
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                  analysisOpen ? 'nav-active' : ''
+                } ${collapsed ? 'justify-center px-2' : ''}`}
+                style={!analysisOpen ? { color: 'var(--muted)' } : undefined}
+              >
+                <Beaker className="w-5 h-5 shrink-0" />
+                {!collapsed && (
+                  <>
+                    <span className="flex-1 text-left">Análisis Producto</span>
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform ${open ? 'rotate-180' : ''}`}
+                    />
+                  </>
+                )}
+              </button>
+              {open && !collapsed && (
+                <div className="mt-1 space-y-0.5">
+                  {showResults && (
+                    <NavLink
+                      to="/samples/lot"
+                      className={subLinkClass}
+                      style={({ isActive }) => (!isActive ? { color: 'var(--muted)' } : undefined)}
+                    >
+                      <Table2 className="w-4 h-4" />
+                      Resultado
+                    </NavLink>
+                  )}
+                  {showBehavior && (
+                    <NavLink
+                      to="/analisis/comportamiento"
+                      className={subLinkClass}
+                      style={({ isActive }) => (!isActive ? { color: 'var(--muted)' } : undefined)}
+                    >
+                      <LineChart className="w-4 h-4" />
+                      Análisis de comportamiento
+                    </NavLink>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {showCatalog && (
+            <NavLink
+              to="/products"
+              title="Productos & Orígenes"
+              className={linkClass}
+              style={({ isActive }) => (!isActive ? { color: 'var(--muted)' } : undefined)}
+            >
+              <Package className="w-5 h-5 shrink-0" />
+              {!collapsed && 'Productos & Orígenes'}
+            </NavLink>
+          )}
         </nav>
 
         <div className="p-2 border-t relative" style={{ borderColor: 'var(--border)' }} ref={menuRef}>
