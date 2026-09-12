@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { samplesApi, lotsApi, catalogApi } from '../lib/api'
-import { Plus, Search, X, Pencil, FlaskConical, Clock, CheckCircle2 } from 'lucide-react'
+import { Plus, Search, X, Pencil, FlaskConical, Clock, CheckCircle2, ChevronDown } from 'lucide-react'
 
 const PRODUCT_TABS = [
   { key: 'torta_cacao', label: 'Torta de cacao', match: (n) => n && n.toLowerCase() === 'torta de cacao' },
@@ -11,7 +11,6 @@ const PRODUCT_TABS = [
   { key: 'grano', label: 'Grano de cacao', match: () => false, isGrain: true },
 ]
 
-/** pendiente | resultado | sin_muestra */
 function sampleStatus(s) {
   const obs = (s.observation || '').toUpperCase()
   if (obs.includes('SIN MUESTRA') && (s.cadmium_mg_kg == null || s.cadmium_mg_kg === '')) {
@@ -38,7 +37,7 @@ function StatusBadge({ status }) {
   }
   return (
     <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-      <Clock className="w-3 h-3" /> Por analizar
+      <Clock className="w-3 h-3" /> Pendiente de resultado
     </span>
   )
 }
@@ -136,11 +135,74 @@ function LotCombobox({ lots, value, onChange, lotCode, onLotCodeChange, disabled
   )
 }
 
+function OriginsMultiSelect({ origins, selected, onChange }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const toggle = (name) => {
+    if (selected.includes(name)) {
+      onChange(selected.filter((x) => x !== name))
+    } else {
+      onChange([...selected, name])
+    }
+  }
+
+  const label =
+    selected.length === 0
+      ? 'Seleccionar orígenes…'
+      : selected.length <= 2
+        ? selected.join(', ')
+        : `${selected.slice(0, 2).join(', ')} +${selected.length - 2}`
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        className="input w-full text-left flex items-center justify-between gap-2"
+        onClick={() => setOpen(!open)}
+      >
+        <span className={selected.length === 0 ? 'text-gray-400' : 'text-gray-900 truncate'}>{label}</span>
+        <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" />
+      </button>
+      {open && (
+        <div className="absolute z-30 mt-1 w-full max-h-56 overflow-auto rounded-xl border bg-white shadow-lg border-surface-200 p-2">
+          {origins.length === 0 ? (
+            <p className="text-sm text-gray-400 px-2 py-2">No hay orígenes en el catálogo</p>
+          ) : (
+            origins.map((o) => (
+              <label
+                key={o.id}
+                className="flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-surface-50 cursor-pointer text-sm"
+              >
+                <input
+                  type="checkbox"
+                  className="rounded border-gray-300 text-primary-500 focus:ring-primary-500"
+                  checked={selected.includes(o.name)}
+                  onChange={() => toggle(o.name)}
+                />
+                <span>{o.name}</span>
+              </label>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 const emptyForm = {
   lot_id: '',
   lot_code: '',
   send_date: '',
-  origins: '',
+  origins: [],
   estado: 'pendiente',
   cadmium_mg_kg: '',
 }
@@ -151,6 +213,7 @@ export default function SamplesLot() {
   const [grainSamples, setGrainSamples] = useState([])
   const [lots, setLots] = useState([])
   const [products, setProducts] = useState([])
+  const [originsList, setOriginsList] = useState([])
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState({ ...emptyForm })
@@ -163,16 +226,18 @@ export default function SamplesLot() {
   const load = async () => {
     setLoading(true)
     try {
-      const [s, g, l, p] = await Promise.all([
+      const [s, g, l, p, o] = await Promise.all([
         samplesApi.listLot(),
         samplesApi.listGrain(),
         lotsApi.list(),
         catalogApi.products(),
+        catalogApi.origins(),
       ])
       setSamples(s.data || [])
       setGrainSamples(g.data || [])
       setLots(l.data || [])
       setProducts(p.data || [])
+      setOriginsList(o.data || [])
     } finally {
       setLoading(false)
     }
@@ -185,12 +250,8 @@ export default function SamplesLot() {
   const filteredSamples = useMemo(() => {
     if (currentTab.isGrain) return []
     let list = samples.filter((s) => currentTab.match(s.product_name))
-    if (filterStatus === 'pendiente') {
-      list = list.filter((s) => sampleStatus(s) === 'pendiente')
-    }
-    if (filterStatus === 'resultado') {
-      list = list.filter((s) => sampleStatus(s) === 'resultado')
-    }
+    if (filterStatus === 'pendiente') list = list.filter((s) => sampleStatus(s) === 'pendiente')
+    if (filterStatus === 'resultado') list = list.filter((s) => sampleStatus(s) === 'resultado')
     return list
   }, [samples, currentTab, filterStatus])
 
@@ -214,8 +275,7 @@ export default function SamplesLot() {
   }, [samples, grainSamples])
 
   const pendingCount = useMemo(
-    () =>
-      samples.filter((s) => currentTab.match(s.product_name) && sampleStatus(s) === 'pendiente').length,
+    () => samples.filter((s) => currentTab.match(s.product_name) && sampleStatus(s) === 'pendiente').length,
     [samples, currentTab]
   )
 
@@ -231,12 +291,16 @@ export default function SamplesLot() {
 
   const openEdit = (sample) => {
     const st = sampleStatus(sample)
+    const originNames = (sample.origins_text || sample.observation || '')
+      .split(',')
+      .map((x) => x.trim())
+      .filter(Boolean)
     setEditingId(sample.id)
     setForm({
       lot_id: String(sample.lot_id),
       lot_code: sample.lot_code || '',
       send_date: sample.send_date || '',
-      origins: sample.origins_text || '',
+      origins: originNames,
       estado: st === 'resultado' ? 'resultado' : 'pendiente',
       cadmium_mg_kg: sample.cadmium_mg_kg != null ? String(sample.cadmium_mg_kg) : '',
     })
@@ -264,12 +328,12 @@ export default function SamplesLot() {
     try {
       const isResultado = form.estado === 'resultado'
       const cd = form.cadmium_mg_kg === '' ? null : Number(form.cadmium_mg_kg)
-      const originsNote = (form.origins || '').trim()
+      const originsText = form.origins.join(', ')
       const payload = {
         cadmium_mg_kg: isResultado ? cd : null,
         has_sample: isResultado && cd != null,
         send_date: form.send_date || null,
-        observation: originsNote || null,
+        observation: originsText || null,
       }
 
       if (editingId) {
@@ -297,18 +361,18 @@ export default function SamplesLot() {
         <div>
           <h1 className="text-2xl font-medium text-gray-900">Análisis por producto</h1>
           <p className="text-sm text-gray-500 mt-1">
-            Registra lotes enviados y completa el cadmio cuando llegue el resultado
+            Registra lotes y completa el cadmio cuando llegue el resultado
           </p>
         </div>
         {!currentTab.isGrain && (
           <div className="flex items-center gap-2">
             {pendingCount > 0 && (
               <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-                {pendingCount} por analizar
+                {pendingCount} pendiente{pendingCount === 1 ? '' : 's'}
               </span>
             )}
             <button type="button" onClick={openNew} className="btn-primary flex items-center gap-2 text-sm">
-              <Plus className="w-4 h-4" /> Nuevo análisis
+              <Plus className="w-4 h-4" /> Añadir nuevo lote
             </button>
           </div>
         )}
@@ -343,7 +407,7 @@ export default function SamplesLot() {
           <div className="flex items-center gap-2">
             <FlaskConical className="w-5 h-5 text-primary-500" />
             <h2 className="text-sm font-semibold text-gray-900">
-              {editingId ? 'Editar análisis' : 'Nuevo análisis'}
+              {editingId ? 'Editar lote' : 'Añadir nuevo lote'}
             </h2>
           </div>
 
@@ -372,12 +436,10 @@ export default function SamplesLot() {
 
             <div>
               <label className="label">Orígenes</label>
-              <input
-                type="text"
-                className="input"
-                value={form.origins}
-                onChange={(e) => setForm({ ...form, origins: e.target.value })}
-                placeholder="Ej. Jaen, Ayacucho, Pangoa"
+              <OriginsMultiSelect
+                origins={originsList}
+                selected={form.origins}
+                onChange={(names) => setForm({ ...form, origins: names })}
               />
             </div>
 
@@ -386,24 +448,33 @@ export default function SamplesLot() {
               <select
                 className="input"
                 value={form.estado}
-                onChange={(e) => setForm({ ...form, estado: e.target.value })}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    estado: e.target.value,
+                    cadmium_mg_kg: e.target.value === 'pendiente' ? '' : form.cadmium_mg_kg,
+                  })
+                }
               >
-                <option value="pendiente">Por analizar</option>
+                <option value="pendiente">Pendiente de resultado</option>
                 <option value="resultado">Con resultado</option>
               </select>
             </div>
 
-            <div>
-              <label className="label">Cadmio (mg/kg)</label>
-              <input
-                type="number"
-                step="0.001"
-                className="input"
-                value={form.cadmium_mg_kg}
-                onChange={(e) => setForm({ ...form, cadmium_mg_kg: e.target.value })}
-                placeholder={form.estado === 'resultado' ? 'Resultado del laboratorio' : 'Opcional si aún no hay resultado'}
-              />
-            </div>
+            {form.estado === 'resultado' && (
+              <div>
+                <label className="label">Cadmio (mg/kg)</label>
+                <input
+                  type="number"
+                  step="0.001"
+                  className="input"
+                  value={form.cadmium_mg_kg}
+                  onChange={(e) => setForm({ ...form, cadmium_mg_kg: e.target.value })}
+                  placeholder="Resultado del laboratorio"
+                  required
+                />
+              </div>
+            )}
 
             <div className="md:col-span-2 flex gap-3 pt-1">
               <button type="submit" className="btn-primary" disabled={saving}>
@@ -428,7 +499,7 @@ export default function SamplesLot() {
         <div className="flex gap-2 flex-wrap">
           {[
             { key: 'all', label: 'Todos' },
-            { key: 'pendiente', label: 'Lote por analizar' },
+            { key: 'pendiente', label: 'Pendiente de resultado' },
             { key: 'resultado', label: 'Con resultado' },
           ].map((f) => (
             <button
