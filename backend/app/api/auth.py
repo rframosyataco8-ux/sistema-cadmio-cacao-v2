@@ -5,8 +5,15 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.core.security import verify_password, create_access_token, get_password_hash
 from app.core.config import settings
-from app.models.user import User, UserRole
-from app.schemas.user import UserCreate, UserOut, Token, ProfileUpdate, PasswordChange
+from app.models.user import User, UserRole, DEFAULT_PERMISSIONS
+from app.schemas.user import (
+    UserCreate,
+    UserOut,
+    Token,
+    ProfileUpdate,
+    PasswordChange,
+    UserPermissionsUpdate,
+)
 from app.api.deps import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -19,12 +26,19 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Credenciales incorrectas")
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario inactivo")
-    token = create_access_token(subject=user.email, expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES))
-    return Token(access_token=token, user=UserOut.model_validate(user))
+    token = create_access_token(
+        subject=user.email,
+        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
+    return Token(access_token=token, user=UserOut.from_user(user))
 
 
 @router.post("/register", response_model=UserOut)
-def register(payload: UserCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def register(
+    payload: UserCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Solo administradores pueden crear usuarios")
     if payload.role == UserRole.ADMIN:
@@ -32,21 +46,27 @@ def register(payload: UserCreate, db: Session = Depends(get_db), current_user: U
     exists = db.query(User).filter(User.email == payload.email).first()
     if exists:
         raise HTTPException(status_code=400, detail="El email ya está registrado")
+
+    perms = payload.permissions.model_dump() if payload.permissions else dict(DEFAULT_PERMISSIONS)
+    if payload.role == UserRole.ANALYST:
+        perms["can_create_samples"] = True
+
     user = User(
         email=payload.email,
         full_name=payload.full_name,
         hashed_password=get_password_hash(payload.password),
         role=payload.role,
     )
+    user.set_permissions(perms)
     db.add(user)
     db.commit()
     db.refresh(user)
-    return user
+    return UserOut.from_user(user)
 
 
 @router.get("/me", response_model=UserOut)
 def me(current_user: User = Depends(get_current_user)):
-    return current_user
+    return UserOut.from_user(current_user)
 
 
 @router.patch("/me", response_model=UserOut)
@@ -58,13 +78,12 @@ def update_me(
     if payload.full_name is not None:
         current_user.full_name = payload.full_name.strip() or current_user.full_name
     if payload.avatar is not None:
-        # limitar tamaño ~1.5MB en base64
         if len(payload.avatar) > 2_000_000:
             raise HTTPException(status_code=400, detail="La foto es demasiado grande (máx ~1.5 MB)")
         current_user.avatar = payload.avatar if payload.avatar else None
     db.commit()
     db.refresh(current_user)
-    return current_user
+    return UserOut.from_user(current_user)
 
 
 @router.post("/me/password")
@@ -84,7 +103,36 @@ def change_password(
 def list_users(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     if current_user.role != UserRole.ADMIN:
         raise HTTPException(status_code=403, detail="Solo administradores")
-    return db.query(User).order_by(User.id).all()
+    return [UserOut.from_user(u) for u in db.query(User).order_by(User.id).all()]
+
+
+@router.patch("/users/{user_id}", response_model=UserOut)
+def update_user(
+    user_id: int,
+    payload: UserPermissionsUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Solo administradores")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    if user.role == UserRole.ADMIN:
+        raise HTTPException(status_code=400, detail="No se puede modificar al administrador")
+
+    if payload.role is not None:
+        if payload.role == UserRole.ADMIN:
+            raise HTTPException(status_code=400, detail="No se puede promover a administrador")
+        user.role = payload.role
+    if payload.is_active is not None:
+        user.is_active = payload.is_active
+    if payload.permissions is not None:
+        user.set_permissions(payload.permissions.model_dump())
+
+    db.commit()
+    db.refresh(user)
+    return UserOut.from_user(user)
 
 
 @router.patch("/users/{user_id}/active", response_model=UserOut)
@@ -104,4 +152,4 @@ def set_active(
     user.is_active = active
     db.commit()
     db.refresh(user)
-    return user
+    return UserOut.from_user(user)

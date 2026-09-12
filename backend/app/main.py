@@ -10,12 +10,15 @@ from app.api import auth, catalog, lots, samples, analytics
 
 
 def migrate_schema():
-    """Añade columnas nuevas sin borrar datos."""
     with engine.begin() as conn:
-        try:
-            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT"))
-        except Exception as e:
-            print(f"migrate avatar: {e}")
+        for stmt in [
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS permissions TEXT",
+        ]:
+            try:
+                conn.execute(text(stmt))
+            except Exception as e:
+                print(f"migrate: {e}")
 
 
 def seed_admin():
@@ -38,7 +41,6 @@ def seed_admin():
         elif admin.email == "admin@cadmio.local":
             admin.email = "admin@cadmio.com"
             db.commit()
-            print("Admin migrado a admin@cadmio.com")
     finally:
         db.close()
 
@@ -77,12 +79,7 @@ app.include_router(analytics.router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 def root():
-    return {
-        "name": settings.PROJECT_NAME,
-        "version": settings.VERSION,
-        "docs": "/docs",
-        "status": "ok",
-    }
+    return {"name": settings.PROJECT_NAME, "version": settings.VERSION, "status": "ok"}
 
 
 @app.get("/health")
