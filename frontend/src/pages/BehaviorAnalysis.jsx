@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import Plot from 'react-plotly.js'
 import { samplesApi } from '../lib/api'
+import { ArrowLeft, Beaker, Wheat } from 'lucide-react'
 
-const PRODUCT_TABS = [
+const PRODUCTS = [
   {
     key: 'torta_cacao',
     label: 'Torta de cacao',
@@ -62,13 +63,22 @@ function stats(values) {
   }
 }
 
+function countFor(product, lotSamples, grainSamples) {
+  if (product.type === 'grain') {
+    return (grainSamples || []).filter((s) => s.has_sample && s.cadmium_mg_kg != null).length
+  }
+  return (lotSamples || []).filter(
+    (s) => product.match(s.product_name) && s.has_sample && s.cadmium_mg_kg != null
+  ).length
+}
+
 export default function BehaviorAnalysis() {
-  const [tab, setTab] = useState('torta_cacao')
+  const [selected, setSelected] = useState(null)
   const [lotSamples, setLotSamples] = useState([])
   const [grainSamples, setGrainSamples] = useState([])
   const [loading, setLoading] = useState(true)
 
-  const current = PRODUCT_TABS.find((t) => t.key === tab) || PRODUCT_TABS[0]
+  const current = PRODUCTS.find((t) => t.key === selected) || null
 
   useEffect(() => {
     ;(async () => {
@@ -84,6 +94,7 @@ export default function BehaviorAnalysis() {
   }, [])
 
   const series = useMemo(() => {
+    if (!current) return []
     if (current.type === 'grain') {
       return (grainSamples || [])
         .filter((s) => s.has_sample && s.cadmium_mg_kg != null)
@@ -111,6 +122,7 @@ export default function BehaviorAnalysis() {
   const st = stats(series.map((x) => x.value))
 
   const byOrigin = useMemo(() => {
+    if (!current) return []
     if (current.type === 'grain') {
       const map = {}
       for (const s of grainSamples) {
@@ -120,7 +132,11 @@ export default function BehaviorAnalysis() {
         map[k].push(Number(s.cadmium_mg_kg))
       }
       return Object.entries(map)
-        .map(([name, vals]) => ({ name, avg: vals.reduce((a, b) => a + b, 0) / vals.length, n: vals.length }))
+        .map(([name, vals]) => ({
+          name,
+          avg: vals.reduce((a, b) => a + b, 0) / vals.length,
+          n: vals.length,
+        }))
         .sort((a, b) => b.avg - a.avg)
     }
     const map = {}
@@ -129,45 +145,82 @@ export default function BehaviorAnalysis() {
         .split(',')
         .map((x) => x.trim())
         .filter(Boolean)
-      if (!origins.length) continue
       for (const o of origins) {
         if (!map[o]) map[o] = []
         map[o].push(s.value)
       }
     }
     return Object.entries(map)
-      .map(([name, vals]) => ({ name, avg: vals.reduce((a, b) => a + b, 0) / vals.length, n: vals.length }))
+      .map(([name, vals]) => ({
+        name,
+        avg: vals.reduce((a, b) => a + b, 0) / vals.length,
+        n: vals.length,
+      }))
       .sort((a, b) => b.avg - a.avg)
   }, [current, series, grainSamples])
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64 text-gray-500">Cargando análisis...</div>
+    return (
+      <div className="flex items-center justify-center h-64 text-gray-500">Cargando análisis...</div>
+    )
   }
 
+  /* ——— Vista de selección (cuadrícula de productos) ——— */
+  if (!current) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-medium text-gray-900">Análisis de comportamiento</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Selecciona un producto para ver sus gráficos de cadmio
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-4xl">
+          {PRODUCTS.map((p) => {
+            const n = countFor(p, lotSamples, grainSamples)
+            return (
+              <button
+                key={p.key}
+                type="button"
+                onClick={() => setSelected(p.key)}
+                className="aspect-square min-h-[160px] rounded-2xl border-2 border-surface-200 bg-white
+                  hover:border-primary-400 hover:shadow-md hover:bg-primary-50/40
+                  transition-all flex flex-col items-center justify-center gap-3 p-6 text-center"
+              >
+                <div className="w-12 h-12 rounded-xl bg-surface-100 flex items-center justify-center">
+                  {p.type === 'grain' ? (
+                    <Wheat className="w-6 h-6 text-primary-600" />
+                  ) : (
+                    <Beaker className="w-6 h-6 text-primary-600" />
+                  )}
+                </div>
+                <span className="text-base font-medium text-gray-900 leading-snug">{p.label}</span>
+                <span className="text-xs text-gray-500">{n} muestra{n === 1 ? '' : 's'}</span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
+  /* ——— Vista de resultados del producto elegido ——— */
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-medium text-gray-900">Análisis de comportamiento</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Gráficos exclusivos del producto seleccionado (cadmio en el tiempo y por lote/origen)
-        </p>
-      </div>
-
-      <div className="flex flex-wrap gap-2 border-b border-surface-200 pb-3">
-        {PRODUCT_TABS.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            onClick={() => setTab(t.key)}
-            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              tab === t.key
-                ? 'bg-primary-500 text-white shadow-sm'
-                : 'bg-white text-gray-600 border border-surface-200 hover:bg-surface-50'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+      <div className="flex items-start gap-4">
+        <button
+          type="button"
+          onClick={() => setSelected(null)}
+          className="mt-1 p-2 rounded-lg border border-surface-200 bg-white hover:bg-surface-50 text-gray-600"
+          title="Volver a productos"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <div>
+          <h1 className="text-2xl font-medium text-gray-900">{current.label}</h1>
+          <p className="text-sm text-gray-500 mt-1">Análisis de comportamiento del cadmio</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -192,9 +245,7 @@ export default function BehaviorAnalysis() {
       ) : (
         <>
           <div className="card p-5">
-            <h2 className="text-sm font-medium text-gray-700 mb-2">
-              Tendencia de cadmio — {current.label}
-            </h2>
+            <h2 className="text-sm font-medium text-gray-700 mb-2">Tendencia de cadmio</h2>
             <Plot
               data={[
                 {
@@ -213,7 +264,6 @@ export default function BehaviorAnalysis() {
               layout={{
                 ...chartLayout,
                 height: 360,
-                title: { text: current.label, font: { size: 13, color: '#3c4043' } },
                 shapes: [
                   {
                     type: 'line',
@@ -245,7 +295,7 @@ export default function BehaviorAnalysis() {
 
           <div className="card p-5">
             <h2 className="text-sm font-medium text-gray-700 mb-2">
-              Cadmio por {current.type === 'grain' ? 'guía' : 'lote'} — {current.label}
+              Cadmio por {current.type === 'grain' ? 'guía' : 'lote'}
             </h2>
             <Plot
               data={[
@@ -273,9 +323,7 @@ export default function BehaviorAnalysis() {
 
           {byOrigin.length > 0 && (
             <div className="card p-5">
-              <h2 className="text-sm font-medium text-gray-700 mb-2">
-                Cadmio promedio por origen — {current.label}
-              </h2>
+              <h2 className="text-sm font-medium text-gray-700 mb-2">Cadmio promedio por origen</h2>
               <Plot
                 data={[
                   {
