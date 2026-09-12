@@ -12,7 +12,7 @@ class UserCreate(BaseModel):
 
 class UserOut(BaseModel):
     id: int
-    email: EmailStr
+    email: str  # str para permitir dominios internos (.local, etc.)
     full_name: str
     role: UserRole
     is_active: bool
@@ -23,7 +23,7 @@ class UserOut(BaseModel):
 
 
 class UserLogin(BaseModel):
-    email: EmailStr
+    email: str
     password: str
 
 
