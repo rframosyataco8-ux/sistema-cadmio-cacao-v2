@@ -16,6 +16,19 @@ class SampleLotCreate(BaseModel):
     producer_name: str | None = None
 
 
+class SampleLotUpdate(BaseModel):
+    cadmium_mg_kg: float | None = None
+    has_sample: bool | None = None
+    sample_weight_g: float | None = None
+    pesticides: str | None = None
+    observation: str | None = None
+    analysis_date: date | None = None
+    send_date: date | None = None
+    lab_name: str | None = None
+    producer_code: str | None = None
+    producer_name: str | None = None
+
+
 class SampleLotOut(BaseModel):
     id: int
     lot_id: int
