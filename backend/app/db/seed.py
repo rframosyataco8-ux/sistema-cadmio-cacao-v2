@@ -19,18 +19,26 @@ from app.models.sample import SampleLot, SampleGrain
 def load_real_data():
     base = Path(__file__).resolve().parent / "data"
     grain_path = base / "real_grain.json"
-    lots_path = base / "real_lots.json"
-    lots_a = base / "real_lots_a.json"
-    lots_b = base / "real_lots_b.json"
-    if lots_path.exists():
-        lots = json.loads(lots_path.read_text(encoding="utf-8"))
-    elif lots_a.exists() and lots_b.exists():
-        lots = json.loads(lots_a.read_text(encoding="utf-8")) + json.loads(lots_b.read_text(encoding="utf-8"))
+    parts = sorted(base.glob("real_lots_part*.json"))
+    if parts:
+        lots = []
+        for part in parts:
+            lots.extend(json.loads(part.read_text(encoding="utf-8")))
+    elif (base / "real_lots.json").exists():
+        lots = json.loads((base / "real_lots.json").read_text(encoding="utf-8"))
+    elif (base / "real_lots_a.json").exists() and (base / "real_lots_b.json").exists():
+        lots = (
+            json.loads((base / "real_lots_a.json").read_text(encoding="utf-8"))
+            + json.loads((base / "real_lots_b.json").read_text(encoding="utf-8"))
+        )
+    elif (base / "real_lots_trozada.json").exists():
+        lots = json.loads((base / "real_lots_trozada.json").read_text(encoding="utf-8"))
     else:
         raise FileNotFoundError("Faltan archivos de lotes en app/db/data")
-    if not grain_path.exists():
-        raise FileNotFoundError("Falta real_grain.json en app/db/data")
-    return {"lots": lots, "grain": json.loads(grain_path.read_text(encoding="utf-8"))}
+    grain = []
+    if grain_path.exists():
+        grain = json.loads(grain_path.read_text(encoding="utf-8"))
+    return {"lots": lots, "grain": grain}
 
 
 def get_or_create_origin(db, name: str) -> Origin:
