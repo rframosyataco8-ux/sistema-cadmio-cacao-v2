@@ -141,6 +141,20 @@ def update_sample_lot(
     return _lot_to_out(s)
 
 
+@router.delete("/samples/lot/{sample_id}")
+def delete_sample_lot(
+    sample_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN, UserRole.ANALYST)),
+):
+    s = db.get(SampleLot, sample_id)
+    if not s:
+        raise HTTPException(404, "Muestra de lote no encontrada")
+    db.delete(s)
+    db.commit()
+    return {"ok": True}
+
+
 @router.get("/samples/grain", response_model=list[SampleGrainOut])
 def list_samples_grain(
     origin_id: int | None = None,
