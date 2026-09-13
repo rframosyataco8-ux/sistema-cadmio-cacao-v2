@@ -169,8 +169,14 @@ def health():
         db_ok = True
     except Exception:
         db_ok = False
+    try:
+        from app.core.cache import analytics_cache
+        cache_name = analytics_cache.backend_name
+    except Exception:
+        cache_name = "unknown"
     return {
         "status": "healthy" if db_ok else "degraded",
         "database": "ok" if db_ok else "error",
+        "cache": cache_name,
         "version": settings.VERSION,
     }
