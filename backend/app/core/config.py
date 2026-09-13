@@ -14,6 +14,14 @@ class Settings(BaseSettings):
 
     CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
 
+    RATE_LIMIT_PER_MINUTE: int = 120
+    RATE_LIMIT_LOGIN_PER_MINUTE: int = 8
+    MAX_REQUEST_BODY_BYTES: int = 1_048_576
+    DB_POOL_SIZE: int = 5
+    DB_MAX_OVERFLOW: int = 10
+    DB_POOL_TIMEOUT: int = 30
+    DB_POOL_RECYCLE: int = 1800
+
     @property
     def cors_origins_list(self) -> List[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]

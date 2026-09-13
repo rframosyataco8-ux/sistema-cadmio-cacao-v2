@@ -5,6 +5,9 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 const api = axios.create({
   baseURL: `${API_URL}/api/v1`,
   headers: { 'Content-Type': 'application/json' },
+  timeout: 20000,
+  maxContentLength: 2_000_000,
+  maxBodyLength: 2_000_000,
 })
 
 api.interceptors.request.use((config) => {
@@ -12,6 +15,25 @@ api.interceptors.request.use((config) => {
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
+
+function humanMessage(err) {
+  if (!err.response) {
+    if (err.code === 'ECONNABORTED') return 'Tiempo de espera agotado. Inténtalo de nuevo.'
+    return 'No se pudo conectar con el servidor.'
+  }
+  const data = err.response.data
+  const status = err.response.status
+  if (status === 429) return data?.detail || 'Demasiadas peticiones. Espera un momento.'
+  if (status === 413) return data?.detail || 'Archivo o datos demasiado grandes.'
+  if (status === 422) {
+    const first = data?.errors?.[0]?.message
+    return first || data?.detail || 'Datos inválidos.'
+  }
+  if (status === 409) return data?.detail || 'Conflicto: el registro ya existe o está en uso.'
+  if (status === 503) return data?.detail || 'Servicio temporalmente no disponible.'
+  if (typeof data?.detail === 'string') return data.detail
+  return 'Error al procesar la solicitud.'
+}
 
 api.interceptors.response.use(
   (res) => res,
@@ -21,6 +43,7 @@ api.interceptors.response.use(
       localStorage.removeItem('user')
       if (window.location.pathname !== '/login') window.location.href = '/login'
     }
+    err.userMessage = humanMessage(err)
     return Promise.reject(err)
   }
 )
@@ -28,10 +51,11 @@ api.interceptors.response.use(
 export const authApi = {
   login: (email, password) => {
     const form = new URLSearchParams()
-    form.append('username', email)
-    form.append('password', password)
+    form.append('username', String(email || '').trim().slice(0, 200))
+    form.append('password', String(password || '').slice(0, 200))
     return api.post('/auth/login', form, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      timeout: 15000,
     })
   },
   me: () => api.get('/auth/me'),
