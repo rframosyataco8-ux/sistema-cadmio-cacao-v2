@@ -15,19 +15,36 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     environment:
       DATABASE_URL: postgresql+psycopg2://cadmio:cadmio_secret@db:5432/cadmio_db
+      REDIS_URL: redis://redis:6379/0
       SECRET_KEY: super-secret-key-change-in-production-cadmio-2026
       ACCESS_TOKEN_EXPIRE_MINUTES: 480
       CORS_ORIGINS: http://localhost:5173,http://localhost:3000
+      GUNICORN_WORKERS: "2"
     ports:
       - "8000:8000"
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     volumes:
       - ./backend:/app
@@ -50,3 +67,4 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:

@@ -14,6 +14,8 @@ class Settings(BaseSettings):
 
     CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
 
+    REDIS_URL: str = ""
+
     RATE_LIMIT_PER_MINUTE: int = 120
     RATE_LIMIT_LOGIN_PER_MINUTE: int = 8
     MAX_REQUEST_BODY_BYTES: int = 1_048_576
