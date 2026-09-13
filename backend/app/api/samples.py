@@ -15,6 +15,7 @@ from app.schemas.sample import (
     SampleGrainOut,
 )
 from app.api.deps import get_current_user, require_roles
+from app.core.cache import analytics_cache
 
 router = APIRouter(tags=["Muestras / Análisis"])
 
@@ -91,6 +92,7 @@ def create_sample_lot(
     s = SampleLot(**payload.model_dump())
     db.add(s)
     db.commit()
+    analytics_cache.clear()
     db.refresh(s)
     s = (
         db.query(SampleLot)
@@ -128,6 +130,7 @@ def update_sample_lot(
     if "cadmium_mg_kg" in data and data["cadmium_mg_kg"] is not None:
         s.has_sample = True
     db.commit()
+    analytics_cache.clear()
     db.refresh(s)
     s = (
         db.query(SampleLot)
@@ -152,6 +155,7 @@ def delete_sample_lot(
         raise HTTPException(404, "Muestra de lote no encontrada")
     db.delete(s)
     db.commit()
+    analytics_cache.clear()
     return {"ok": True}
 
 
@@ -205,6 +209,7 @@ def create_sample_grain(
     s = SampleGrain(**payload.model_dump())
     db.add(s)
     db.commit()
+    analytics_cache.clear()
     db.refresh(s)
     return SampleGrainOut(
         id=s.id,
@@ -242,6 +247,7 @@ def update_sample_grain(
     if s.cadmium_mg_kg is not None:
         s.has_sample = True
     db.commit()
+    analytics_cache.clear()
     db.refresh(s)
     origin = db.get(Origin, s.origin_id)
     return SampleGrainOut(
@@ -271,4 +277,5 @@ def delete_sample_grain(
         raise HTTPException(404, "Muestra de grano no encontrada")
     db.delete(s)
     db.commit()
+    analytics_cache.clear()
     return {"ok": True}
