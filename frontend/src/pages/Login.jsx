@@ -20,7 +20,7 @@ export default function Login() {
       localStorage.setItem('user', JSON.stringify(data.user))
       nav('/')
     } catch (err) {
-      setError(err.response?.data?.detail || 'Credenciales incorrectas')
+      setError(err.userMessage || err.response?.data?.detail || 'Credenciales incorrectas')
     } finally {
       setLoading(false)
     }
