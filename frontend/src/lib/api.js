@@ -63,6 +63,7 @@ export const samplesApi = {
   listLot: (params) => api.get('/samples/lot', { params }),
   createLot: (data) => api.post('/samples/lot', data),
   updateLot: (id, data) => api.patch(`/samples/lot/${id}`, data),
+  deleteLot: (id) => api.delete(`/samples/lot/${id}`),
   listGrain: (params) => api.get('/samples/grain', { params }),
   createGrain: (data) => api.post('/samples/grain', data),
   updateGrain: (id, data) => api.patch(`/samples/grain/${id}`, data),

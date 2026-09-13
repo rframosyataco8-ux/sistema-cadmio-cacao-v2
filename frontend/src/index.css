@@ -3,15 +3,16 @@
 @tailwind utilities;
 
 :root {
-  --bg: #f8f9fa;
+  --bg: #f5f7fb;
   --surface: #ffffff;
-  --border: #e8eaed;
-  --text: #202124;
-  --muted: #5f6368;
-  --hover: #f1f3f4;
+  --border: #e6e9ef;
+  --text: #1a1d23;
+  --muted: #6b7280;
+  --hover: #f0f3f8;
   --active: #e8f0fe;
   --active-text: #1a73e8;
-  --card-shadow: 0 1px 2px rgba(60, 64, 67, 0.08), 0 1px 3px 1px rgba(60, 64, 67, 0.06);
+  --card-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
+  --card-shadow-hover: 0 4px 12px rgba(16, 24, 40, 0.08);
   --chart-grid: #e8eaed;
   --chart-text: #5f6368;
 }
@@ -26,16 +27,18 @@ html.dark {
   --active: #1a2e4a;
   --active-text: #8ab4f8;
   --card-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+  --card-shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.5);
   --chart-grid: #333338;
   --chart-text: #b0b3b8;
 }
 
 body {
-  font-family: 'Roboto', system-ui, sans-serif;
+  font-family: 'Roboto', system-ui, -apple-system, sans-serif;
   margin: 0;
   min-height: 100vh;
   background: var(--bg);
   color: var(--text);
+  -webkit-font-smoothing: antialiased;
 }
 
 html.dark .text-gray-900,
@@ -62,8 +65,22 @@ html.dark .hover\:bg-surface-100:hover { background-color: var(--hover) !importa
     box-shadow: var(--card-shadow);
     color: var(--text);
   }
+  .card-hover {
+    transition: box-shadow 0.2s ease, transform 0.15s ease;
+  }
+  .card-hover:hover {
+    box-shadow: var(--card-shadow-hover);
+  }
   .btn-primary {
-    @apply bg-primary-500 hover:bg-primary-600 text-white font-medium px-4 py-2 rounded-lg transition-colors;
+    @apply bg-primary-500 hover:bg-primary-600 text-white font-medium px-4 py-2 rounded-lg transition-all duration-150;
+    box-shadow: 0 1px 2px rgba(26, 115, 232, 0.25);
+  }
+  .btn-primary:hover {
+    box-shadow: 0 2px 6px rgba(26, 115, 232, 0.35);
+  }
+  .btn-primary:disabled {
+    @apply opacity-60 cursor-not-allowed;
+    box-shadow: none;
   }
   .btn-secondary {
     @apply font-medium px-4 py-2 rounded-lg transition-colors border flex items-center gap-2;
@@ -71,66 +88,58 @@ html.dark .hover\:bg-surface-100:hover { background-color: var(--hover) !importa
     border-color: var(--border);
     color: var(--text);
   }
+  .btn-secondary:hover {
+    background: var(--hover);
+  }
   .btn-ghost {
     @apply font-medium px-3 py-2 rounded-lg transition-colors;
     color: var(--text);
   }
   .btn-ghost:hover { background: var(--hover); }
+  .btn-danger {
+    @apply font-medium px-3 py-2 rounded-lg transition-colors text-red-600;
+  }
+  .btn-danger:hover { background: #fef2f2; }
   .input {
-    @apply w-full rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 border;
+    @apply w-full rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-500 border transition-shadow;
     background: var(--surface);
     border-color: var(--border);
     color: var(--text);
   }
   .label {
-    @apply block text-sm font-medium mb-1;
+    @apply block text-xs font-medium mb-1.5 tracking-wide;
     color: var(--muted);
   }
-  .modal-backdrop {
-    @apply fixed inset-0 z-50 flex items-center justify-center p-4;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(8px);
-  }
-  .modal-panel {
-    @apply w-full max-w-3xl max-h-[85vh] overflow-hidden rounded-2xl border shadow-2xl flex;
-    background: var(--surface);
-    border-color: var(--border);
+  .page-title {
+    @apply text-2xl font-semibold tracking-tight;
     color: var(--text);
   }
-  .nav-active {
-    background: var(--active) !important;
-    color: var(--active-text) !important;
-  }
-  .product-card {
-    @apply aspect-square min-h-[160px] rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-3 p-6 text-center;
-    background: var(--surface);
-    border-color: var(--border);
-    color: var(--text);
-  }
-  .product-card:hover {
-    border-color: #1a73e8;
-    box-shadow: var(--card-shadow);
-    background: var(--active);
+  .page-subtitle {
+    @apply text-sm mt-1;
+    color: var(--muted);
   }
 }
 
-/* ── Gráficos: modebar nativo oculto (usamos ChartToolbar en el header) ── */
-.chart-card {
-  position: relative;
-  overflow: visible;
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-up {
+  animation: slide-up 0.25s ease-out;
 }
 
-.chart-card .js-plotly-plot .modebar-container,
-.chart-card .modebar-container {
-  display: none !important;
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
 }
 
-.chart-card .js-plotly-plot,
-.chart-card .js-plotly-plot .plotly,
-.chart-card .js-plotly-plot .svg-container {
-  border-radius: 0 0 12px 12px;
+.js-plotly-plot .modebar {
+  top: 8px !important;
+  right: 8px !important;
 }
-
-.hoverlayer .hovertext {
-  border-radius: 8px !important;
+.js-plotly-plot .modebar-btn {
+  border-radius: 6px !important;
 }
