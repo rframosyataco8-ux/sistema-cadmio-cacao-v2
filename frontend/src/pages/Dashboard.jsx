@@ -1,16 +1,30 @@
 import { useEffect, useState } from 'react'
 import Plot from 'react-plotly.js'
 import { analyticsApi } from '../lib/api'
-import { Activity, FlaskConical, MapPin, AlertTriangle } from 'lucide-react'
+import { Activity, FlaskConical, MapPin, AlertTriangle, RefreshCw, TrendingUp } from 'lucide-react'
 
 const chartLayout = {
   paper_bgcolor: 'rgba(0,0,0,0)',
   plot_bgcolor: 'rgba(0,0,0,0)',
   font: { family: 'Roboto, sans-serif', size: 12, color: '#5f6368' },
-  margin: { t: 30, r: 20, b: 60, l: 50 },
-  xaxis: { gridcolor: '#e8eaed', zeroline: false },
+  margin: { t: 24, r: 16, b: 56, l: 48 },
+  xaxis: { gridcolor: '#e8eaed', zeroline: false, tickangle: -25 },
   yaxis: { gridcolor: '#e8eaed', zeroline: false, title: 'Cd (mg/kg)' },
   hovermode: 'closest',
+}
+
+function KpiSkeleton() {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="card p-5 animate-pulse">
+          <div className="h-3 w-24 bg-gray-200 rounded mb-3" />
+          <div className="h-7 w-16 bg-gray-200 rounded mb-2" />
+          <div className="h-3 w-32 bg-gray-100 rounded" />
+        </div>
+      ))}
+    </div>
+  )
 }
 
 export default function Dashboard() {
@@ -20,9 +34,12 @@ export default function Dashboard() {
   const [trend, setTrend] = useState(null)
   const [lots, setLots] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [updatedAt, setUpdatedAt] = useState(null)
 
   const load = async () => {
     setLoading(true)
+    setError('')
     try {
       const [k, bp, bo, t, l] = await Promise.all([
         analyticsApi.kpis(),
@@ -36,8 +53,10 @@ export default function Dashboard() {
       setByOrigin(bo.data)
       setTrend(t.data)
       setLots(l.data)
+      setUpdatedAt(new Date())
     } catch (e) {
       console.error(e)
+      setError('No se pudo cargar el dashboard. Verifica el backend.')
     } finally {
       setLoading(false)
     }
@@ -45,79 +64,174 @@ export default function Dashboard() {
 
   useEffect(() => { load() }, [])
 
-  if (loading) return <div className="flex items-center justify-center h-64 text-gray-500">Cargando dashboard...</div>
-
   const kpiCards = [
-    { label: 'Muestras producto', value: kpis?.product_samples?.count ?? 0, sub: kpis?.product_samples?.avg != null ? `Promedio ${kpis.product_samples.avg} mg/kg` : '—', icon: FlaskConical, color: 'text-primary-500' },
-    { label: 'Muestras grano', value: kpis?.grain_samples?.count ?? 0, sub: kpis?.grain_samples?.avg != null ? `Promedio ${kpis.grain_samples.avg} mg/kg` : '—', icon: Activity, color: 'text-emerald-600' },
-    { label: 'Orígenes', value: kpis?.origins_count ?? 0, sub: `${kpis?.products_count ?? 0} productos`, icon: MapPin, color: 'text-amber-600' },
-    { label: 'Lotes > 1.0 mg/kg', value: kpis?.high_cadmium_lots ?? 0, sub: 'Umbral de atención', icon: AlertTriangle, color: 'text-red-500' },
+    {
+      label: 'Muestras producto',
+      value: kpis?.product_samples?.count ?? 0,
+      sub: kpis?.product_samples?.avg != null ? `Promedio ${kpis.product_samples.avg} mg/kg` : 'Sin promedio',
+      icon: FlaskConical,
+      tone: 'bg-blue-50 text-primary-600',
+    },
+    {
+      label: 'Muestras grano',
+      value: kpis?.grain_samples?.count ?? 0,
+      sub: kpis?.grain_samples?.avg != null ? `Promedio ${kpis.grain_samples.avg} mg/kg` : 'Sin promedio',
+      icon: Activity,
+      tone: 'bg-emerald-50 text-emerald-600',
+    },
+    {
+      label: 'Orígenes activos',
+      value: kpis?.origins_count ?? 0,
+      sub: `${kpis?.products_count ?? 0} productos catalogados`,
+      icon: MapPin,
+      tone: 'bg-amber-50 text-amber-600',
+    },
+    {
+      label: 'Lotes > 1.0 mg/kg',
+      value: kpis?.high_cadmium_lots ?? 0,
+      sub: 'Umbral de atención',
+      icon: AlertTriangle,
+      tone: 'bg-red-50 text-red-600',
+    },
   ]
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-medium text-gray-900">Dashboard de Cadmio</h1>
-          <p className="text-sm text-gray-500 mt-1">Los gráficos se actualizan al registrar nuevos análisis</p>
+          <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">Dashboard</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Resumen de cadmio ·{' '}
+            {updatedAt
+              ? `Actualizado ${updatedAt.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })}`
+              : 'Cargando datos…'}
+          </p>
         </div>
-        <button onClick={load} className="btn-primary text-sm">Actualizar</button>
+        <button type="button" onClick={load} disabled={loading} className="btn-secondary text-sm inline-flex items-center gap-2 self-start">
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          Actualizar
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpiCards.map((c) => (
-          <div key={c.label} className="card p-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-gray-500">{c.label}</p>
-                <p className="text-2xl font-medium text-gray-900 mt-1">{c.value}</p>
-                <p className="text-xs text-gray-400 mt-1">{c.sub}</p>
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 text-red-800 text-sm px-4 py-3">{error}</div>
+      )}
+
+      {loading && !kpis ? (
+        <KpiSkeleton />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {kpiCards.map((c) => (
+            <div key={c.label} className="card p-5 hover:shadow-md transition-shadow duration-200">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{c.label}</p>
+                  <p className="text-3xl font-semibold text-gray-900 mt-1.5 tabular-nums">{c.value}</p>
+                  <p className="text-xs text-gray-400 mt-1.5 truncate">{c.sub}</p>
+                </div>
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${c.tone}`}>
+                  <c.icon className="w-5 h-5" />
+                </div>
               </div>
-              <c.icon className={`w-5 h-5 ${c.color}`} />
             </div>
+          ))}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <TrendingUp className="w-4 h-4 text-primary-500" />
+            <h2 className="text-sm font-semibold text-gray-800">Cadmio promedio por producto</h2>
           </div>
-        ))}
+          {byProduct?.labels?.length ? (
+            <Plot
+              data={[{
+                type: 'bar',
+                x: byProduct.labels,
+                y: byProduct.avg,
+                marker: { color: '#1a73e8' },
+                hovertemplate: '%{x}<br>Promedio: %{y:.3f} mg/kg<br>n=%{customdata}<extra></extra>',
+                customdata: byProduct.count,
+              }]}
+              layout={{ ...chartLayout, height: 300 }}
+              config={{ responsive: true, displayModeBar: false }}
+              style={{ width: '100%' }}
+            />
+          ) : (
+            <p className="text-sm text-gray-400 py-16 text-center">Sin datos de producto</p>
+          )}
+        </div>
+
+        <div className="card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <MapPin className="w-4 h-4 text-emerald-600" />
+            <h2 className="text-sm font-semibold text-gray-800">Cadmio promedio por origen (grano)</h2>
+          </div>
+          {byOrigin?.labels?.length ? (
+            <Plot
+              data={[{
+                type: 'bar',
+                x: byOrigin.labels,
+                y: byOrigin.avg,
+                marker: { color: '#34a853' },
+                hovertemplate: '%{x}<br>Promedio: %{y:.3f} mg/kg<br>n=%{customdata}<extra></extra>',
+                customdata: byOrigin.count,
+              }]}
+              layout={{ ...chartLayout, height: 300 }}
+              config={{ responsive: true, displayModeBar: false }}
+              style={{ width: '100%' }}
+            />
+          ) : (
+            <p className="text-sm text-gray-400 py-16 text-center">Sin datos de grano</p>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card p-5">
-          <h2 className="text-sm font-medium text-gray-700 mb-3">Cadmio promedio por producto</h2>
-          {byProduct?.labels?.length ? (
-            <Plot data={[{ type: 'bar', x: byProduct.labels, y: byProduct.avg, marker: { color: '#1a73e8' },
-              hovertemplate: '%{x}<br>Promedio: %{y:.3f} mg/kg<br>n=%{customdata}<extra></extra>', customdata: byProduct.count }]}
-              layout={{ ...chartLayout, height: 320 }} config={{ responsive: true, displayModeBar: false }} style={{ width: '100%' }} />
-          ) : <p className="text-sm text-gray-400 py-12 text-center">Sin datos — ejecuta el seed</p>}
+          <h2 className="text-sm font-semibold text-gray-800 mb-4">Tendencia temporal</h2>
+          {trend?.dates?.length ? (
+            <Plot
+              data={[{
+                type: 'scatter',
+                mode: 'lines+markers',
+                x: trend.dates,
+                y: trend.values,
+                line: { color: '#1a73e8', width: 2 },
+                marker: { size: 6 },
+                hovertemplate: '%{x}<br>%{y:.3f} mg/kg<extra></extra>',
+              }]}
+              layout={{ ...chartLayout, height: 280 }}
+              config={{ responsive: true, displayModeBar: false }}
+              style={{ width: '100%' }}
+            />
+          ) : (
+            <p className="text-sm text-gray-400 py-14 text-center">Sin serie temporal</p>
+          )}
         </div>
+
         <div className="card p-5">
-          <h2 className="text-sm font-medium text-gray-700 mb-3">Cadmio promedio por origen (grano)</h2>
-          {byOrigin?.labels?.length ? (
-            <Plot data={[{ type: 'bar', x: byOrigin.labels, y: byOrigin.avg, marker: { color: '#34a853' },
-              hovertemplate: '%{x}<br>Promedio: %{y:.3f} mg/kg<br>n=%{customdata}<extra></extra>', customdata: byOrigin.count }]}
-              layout={{ ...chartLayout, height: 320 }} config={{ responsive: true, displayModeBar: false }} style={{ width: '100%' }} />
-          ) : <p className="text-sm text-gray-400 py-12 text-center">Sin datos</p>}
+          <h2 className="text-sm font-semibold text-gray-800 mb-4">Últimos lotes analizados</h2>
+          {lots?.labels?.length ? (
+            <Plot
+              data={[{
+                type: 'bar',
+                x: lots.labels,
+                y: lots.values,
+                marker: {
+                  color: (lots.values || []).map((v) => (v > 1 ? '#ea4335' : '#1a73e8')),
+                },
+                hovertemplate: 'Lote %{x}<br>%{y:.3f} mg/kg<extra></extra>',
+              }]}
+              layout={{ ...chartLayout, height: 280 }}
+              config={{ responsive: true, displayModeBar: false }}
+              style={{ width: '100%' }}
+            />
+          ) : (
+            <p className="text-sm text-gray-400 py-14 text-center">Sin lotes recientes</p>
+          )}
         </div>
-      </div>
-
-      <div className="card p-5">
-        <h2 className="text-sm font-medium text-gray-700 mb-3">Tendencia de cadmio en productos</h2>
-        {trend?.dates?.length ? (
-          <Plot data={[{ type: 'scatter', mode: 'lines+markers', x: trend.dates, y: trend.values, text: trend.lot_codes,
-            marker: { color: '#1a73e8', size: 8 }, line: { color: '#1a73e8', width: 2 },
-            hovertemplate: 'Lote: %{text}<br>Fecha: %{x}<br>Cd: %{y:.3f} mg/kg<br>%{customdata}<extra></extra>', customdata: trend.products }]}
-            layout={{ ...chartLayout, height: 360, xaxis: { ...chartLayout.xaxis, title: 'Fecha de envío' } }}
-            config={{ responsive: true, displayModeBar: true }} style={{ width: '100%' }} />
-        ) : <p className="text-sm text-gray-400 py-12 text-center">Sin datos de tendencia</p>}
-      </div>
-
-      <div className="card p-5">
-        <h2 className="text-sm font-medium text-gray-700 mb-3">Cadmio por lote</h2>
-        {lots?.labels?.length ? (
-          <Plot data={[{ type: 'bar', x: lots.labels, y: lots.values,
-            marker: { color: lots.values.map((v) => (v > 1.0 ? '#ea4335' : '#1a73e8')) },
-            hovertemplate: 'Lote: %{x}<br>Cd: %{y:.3f} mg/kg<br>Orígenes: %{customdata}<extra></extra>', customdata: lots.origins }]}
-            layout={{ ...chartLayout, height: 380, xaxis: { ...chartLayout.xaxis, tickangle: -45 } }}
-            config={{ responsive: true, displayModeBar: true }} style={{ width: '100%' }} />
-        ) : <p className="text-sm text-gray-400 py-12 text-center">Sin lotes</p>}
       </div>
     </div>
   )
