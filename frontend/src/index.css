@@ -3,42 +3,46 @@
 @tailwind utilities;
 
 :root {
-  --bg: #f5f7fb;
+  --bg: #f4f6fa;
   --surface: #ffffff;
-  --border: #e6e9ef;
-  --text: #1a1d23;
-  --muted: #6b7280;
-  --hover: #f0f3f8;
+  --border: #e5e9f0;
+  --text: #151922;
+  --muted: #64708b;
+  --hover: #eef1f7;
   --active: #e8f0fe;
   --active-text: #1a73e8;
-  --card-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
-  --card-shadow-hover: 0 4px 12px rgba(16, 24, 40, 0.08);
+  --primary: #1a73e8;
+  --card-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.05);
+  --card-shadow-hover: 0 8px 24px rgba(16, 24, 40, 0.08);
+  --radius: 12px;
   --chart-grid: #e8eaed;
   --chart-text: #5f6368;
 }
 
 html.dark {
-  --bg: #0f0f10;
-  --surface: #1a1a1c;
-  --border: #2e2e32;
+  --bg: #0c0d10;
+  --surface: #16171c;
+  --border: #2a2c33;
   --text: #f1f3f4;
-  --muted: #b0b3b8;
-  --hover: #252528;
+  --muted: #9aa0a6;
+  --hover: #1e2028;
   --active: #1a2e4a;
   --active-text: #8ab4f8;
-  --card-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
-  --card-shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --primary: #8ab4f8;
+  --card-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  --card-shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.45);
   --chart-grid: #333338;
   --chart-text: #b0b3b8;
 }
 
 body {
-  font-family: 'Roboto', system-ui, -apple-system, sans-serif;
+  font-family: 'Roboto', system-ui, -apple-system, 'Segoe UI', sans-serif;
   margin: 0;
   min-height: 100vh;
   background: var(--bg);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 html.dark .text-gray-900,
@@ -72,25 +76,26 @@ html.dark .hover\:bg-surface-100:hover { background-color: var(--hover) !importa
     box-shadow: var(--card-shadow-hover);
   }
   .btn-primary {
-    @apply bg-primary-500 hover:bg-primary-600 text-white font-medium px-4 py-2 rounded-lg transition-all duration-150;
+    @apply text-white font-medium px-4 py-2 rounded-lg transition-all duration-150;
+    background-color: #1a73e8;
     box-shadow: 0 1px 2px rgba(26, 115, 232, 0.25);
   }
   .btn-primary:hover {
-    box-shadow: 0 2px 6px rgba(26, 115, 232, 0.35);
+    background-color: #1557b0;
+    box-shadow: 0 2px 8px rgba(26, 115, 232, 0.35);
   }
+  .btn-primary:active { transform: translateY(0.5px); }
   .btn-primary:disabled {
-    @apply opacity-60 cursor-not-allowed;
+    @apply opacity-55 cursor-not-allowed;
     box-shadow: none;
   }
   .btn-secondary {
-    @apply font-medium px-4 py-2 rounded-lg transition-colors border flex items-center gap-2;
+    @apply font-medium px-4 py-2 rounded-lg transition-colors border inline-flex items-center gap-2;
     background: var(--surface);
     border-color: var(--border);
     color: var(--text);
   }
-  .btn-secondary:hover {
-    background: var(--hover);
-  }
+  .btn-secondary:hover { background: var(--hover); }
   .btn-ghost {
     @apply font-medium px-3 py-2 rounded-lg transition-colors;
     color: var(--text);
@@ -101,14 +106,15 @@ html.dark .hover\:bg-surface-100:hover { background-color: var(--hover) !importa
   }
   .btn-danger:hover { background: #fef2f2; }
   .input {
-    @apply w-full rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500/40 focus:border-primary-500 border transition-shadow;
+    @apply w-full rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500/35 focus:border-primary-500 border transition-shadow text-sm;
     background: var(--surface);
     border-color: var(--border);
     color: var(--text);
   }
   .label {
-    @apply block text-xs font-medium mb-1.5 tracking-wide;
+    @apply block text-xs font-medium mb-1.5 tracking-wide uppercase;
     color: var(--muted);
+    letter-spacing: 0.04em;
   }
   .page-title {
     @apply text-2xl font-semibold tracking-tight;
@@ -118,22 +124,28 @@ html.dark .hover\:bg-surface-100:hover { background-color: var(--hover) !importa
     @apply text-sm mt-1;
     color: var(--muted);
   }
+  .main-scroll {
+    scroll-behavior: smooth;
+  }
 }
 
 @keyframes slide-up {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.animate-slide-up {
-  animation: slide-up 0.25s ease-out;
-}
+.animate-slide-up { animation: slide-up 0.22s ease-out; }
 
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-.animate-fade-in {
-  animation: fade-in 0.2s ease-out;
+.animate-fade-in { animation: fade-in 0.18s ease-out; }
+
+table thead th {
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-weight: 600;
 }
 
 .js-plotly-plot .modebar {
@@ -142,4 +154,8 @@ html.dark .hover\:bg-surface-100:hover { background-color: var(--hover) !importa
 }
 .js-plotly-plot .modebar-btn {
   border-radius: 6px !important;
+}
+
+::selection {
+  background: rgba(26, 115, 232, 0.2);
 }
