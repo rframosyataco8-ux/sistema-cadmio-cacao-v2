@@ -1,32 +1,48 @@
 from datetime import datetime, date
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 
 class SampleLotCreate(BaseModel):
-    lot_id: int
-    cadmium_mg_kg: float | None = None
+    lot_id: int = Field(..., gt=0)
+    cadmium_mg_kg: float | None = Field(None, ge=0, le=1000)
     has_sample: bool = True
-    sample_weight_g: float | None = None
-    pesticides: str | None = None
-    observation: str | None = None
+    sample_weight_g: float | None = Field(None, ge=0, le=1_000_000)
+    pesticides: str | None = Field(None, max_length=2000)
+    observation: str | None = Field(None, max_length=2000)
     analysis_date: date | None = None
     send_date: date | None = None
-    lab_name: str | None = None
-    producer_code: str | None = None
-    producer_name: str | None = None
+    lab_name: str | None = Field(None, max_length=200)
+    producer_code: str | None = Field(None, max_length=100)
+    producer_name: str | None = Field(None, max_length=200)
+
+    @field_validator("pesticides", "observation", "lab_name", "producer_code", "producer_name")
+    @classmethod
+    def strip_text(cls, v):
+        if isinstance(v, str):
+            v = v.strip()
+            return v or None
+        return v
 
 
 class SampleLotUpdate(BaseModel):
-    cadmium_mg_kg: float | None = None
+    cadmium_mg_kg: float | None = Field(None, ge=0, le=1000)
     has_sample: bool | None = None
-    sample_weight_g: float | None = None
-    pesticides: str | None = None
-    observation: str | None = None
+    sample_weight_g: float | None = Field(None, ge=0, le=1_000_000)
+    pesticides: str | None = Field(None, max_length=2000)
+    observation: str | None = Field(None, max_length=2000)
     analysis_date: date | None = None
     send_date: date | None = None
-    lab_name: str | None = None
-    producer_code: str | None = None
-    producer_name: str | None = None
+    lab_name: str | None = Field(None, max_length=200)
+    producer_code: str | None = Field(None, max_length=100)
+    producer_name: str | None = Field(None, max_length=200)
+
+    @field_validator("pesticides", "observation", "lab_name", "producer_code", "producer_name")
+    @classmethod
+    def strip_text(cls, v):
+        if isinstance(v, str):
+            v = v.strip()
+            return v or None
+        return v
 
 
 class SampleLotOut(BaseModel):
@@ -52,27 +68,42 @@ class SampleLotOut(BaseModel):
 
 
 class SampleGrainUpdate(BaseModel):
-    origin_id: int | None = None
-    guia_code: str | None = None
-    cadmium_mg_kg: float | None = None
+    origin_id: int | None = Field(None, gt=0)
+    guia_code: str | None = Field(None, max_length=100)
+    cadmium_mg_kg: float | None = Field(None, ge=0, le=1000)
     has_sample: bool | None = None
-    sample_weight_g: float | None = None
-    observation: str | None = None
+    sample_weight_g: float | None = Field(None, ge=0, le=1_000_000)
+    observation: str | None = Field(None, max_length=2000)
     analysis_date: date | None = None
     send_date: date | None = None
     is_organic: bool | None = None
 
+    @field_validator("guia_code", "observation")
+    @classmethod
+    def strip_text(cls, v):
+        if isinstance(v, str):
+            v = v.strip()
+            return v or None
+        return v
+
 
 class SampleGrainCreate(BaseModel):
-    origin_id: int
-    guia_code: str
-    cadmium_mg_kg: float | None = None
+    origin_id: int = Field(..., gt=0)
+    guia_code: str = Field(..., min_length=1, max_length=100)
+    cadmium_mg_kg: float | None = Field(None, ge=0, le=1000)
     has_sample: bool = True
-    sample_weight_g: float | None = None
-    observation: str | None = None
+    sample_weight_g: float | None = Field(None, ge=0, le=1_000_000)
+    observation: str | None = Field(None, max_length=2000)
     analysis_date: date | None = None
     send_date: date | None = None
     is_organic: bool = False
+
+    @field_validator("guia_code", "observation")
+    @classmethod
+    def strip_text(cls, v):
+        if isinstance(v, str):
+            return v.strip()
+        return v
 
 
 class SampleGrainOut(BaseModel):

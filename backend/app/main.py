@@ -1,8 +1,16 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
 from app.core.config import settings
+from app.core.middleware import (
+    RateLimitMiddleware,
+    SecurityHeadersMiddleware,
+    LimitRequestSizeMiddleware,
+)
 from app.db.session import engine, Base, SessionLocal
 from app.core.security import get_password_hash
 from app.models.user import User, UserRole
@@ -62,12 +70,20 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(LimitRequestSizeMiddleware, max_body_bytes=settings.MAX_REQUEST_BODY_BYTES)
+app.add_middleware(
+    RateLimitMiddleware,
+    requests_per_minute=settings.RATE_LIMIT_PER_MINUTE,
+    login_per_minute=settings.RATE_LIMIT_LOGIN_PER_MINUTE,
+)
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept"],
+    max_age=600,
 )
 
 app.include_router(auth.router, prefix=settings.API_V1_STR)
@@ -75,6 +91,67 @@ app.include_router(catalog.router, prefix=settings.API_V1_STR)
 app.include_router(lots.router, prefix=settings.API_V1_STR)
 app.include_router(samples.router, prefix=settings.API_V1_STR)
 app.include_router(analytics.router, prefix=settings.API_V1_STR)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    errors = []
+    for e in exc.errors():
+        loc = " → ".join(str(x) for x in e.get("loc", []) if x != "body")
+        errors.append({"field": loc or "body", "message": e.get("msg", "Dato inválido")})
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": "Datos de entrada inválidos",
+            "code": "validation_error",
+            "errors": errors,
+        },
+    )
+
+
+@app.exception_handler(IntegrityError)
+async def integrity_exception_handler(request: Request, exc: IntegrityError):
+    return JSONResponse(
+        status_code=409,
+        content={
+            "detail": "Conflicto de datos (duplicado o referencia inválida).",
+            "code": "integrity_error",
+        },
+    )
+
+
+@app.exception_handler(OperationalError)
+async def operational_exception_handler(request: Request, exc: OperationalError):
+    return JSONResponse(
+        status_code=503,
+        content={
+            "detail": "Servicio de base de datos no disponible temporalmente.",
+            "code": "db_unavailable",
+        },
+    )
+
+
+@app.exception_handler(SQLAlchemyError)
+async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": "Error al procesar la operación en base de datos.",
+            "code": "db_error",
+        },
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    print(f"[ERROR] {request.method} {request.url.path}: {type(exc).__name__}: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": "Error interno del servidor. Inténtalo de nuevo.",
+            "code": "internal_error",
+        },
+    )
 
 
 @app.get("/")
