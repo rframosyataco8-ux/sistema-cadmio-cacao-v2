@@ -76,6 +76,21 @@ def parse_origins(text) -> list[str]:
 
 def seed():
     Base.metadata.create_all(bind=engine)
+    try:
+        from sqlalchemy import text as sa_text
+        with engine.begin() as conn:
+            conn.execute(sa_text(
+                "DO $$ BEGIN "
+                "IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'userrole') THEN "
+                "  IF NOT EXISTS (SELECT 1 FROM pg_enum e "
+                "    JOIN pg_type t ON e.enumtypid = t.oid "
+                "    WHERE t.typname = 'userrole' AND e.enumlabel = 'lab') THEN "
+                "    ALTER TYPE userrole ADD VALUE 'lab'; "
+                "  END IF; "
+                "END IF; END $$;"
+            ))
+    except Exception as enum_err:
+        print(f"Nota enum LAB: {enum_err}")
     db = SessionLocal()
     try:
         admin = db.query(User).filter(
@@ -90,17 +105,27 @@ def seed():
             ))
         elif admin.email == "admin@cadmio.local":
             admin.email = "admin@cadmio.com"
+
+        lab = db.query(User).filter(User.email == "lab@cadmio.com").first()
+        if not lab:
+            from app.models.user import LAB_PERMISSIONS
+            lab_user = User(
+                email="lab@cadmio.com",
+                full_name="Personal de Laboratorio",
+                hashed_password=get_password_hash("lab123"),
+                role=UserRole.LAB,
+            )
+            lab_user.set_permissions(LAB_PERMISSIONS)
+            db.add(lab_user)
         db.commit()
 
         from sqlalchemy import text
         try:
-            # Quitar unicidad GLOBAL de lot_code (índices y constraints viejos)
             db.execute(text("ALTER TABLE lots DROP CONSTRAINT IF EXISTS lots_lot_code_key"))
             db.execute(text("ALTER TABLE lots DROP CONSTRAINT IF EXISTS ix_lots_lot_code"))
             db.execute(text("DROP INDEX IF EXISTS lots_lot_code_key"))
             db.execute(text("DROP INDEX IF EXISTS ix_lots_lot_code"))
             db.execute(text("DROP INDEX IF EXISTS lots_lot_code_idx"))
-            # Unicidad por (producto, código)
             db.execute(text(
                 "DO $$ BEGIN "
                 "IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'uq_lot_product_code') THEN "
@@ -217,6 +242,7 @@ def seed():
             f"{n_samples_upd} actualizadas, {n_grain} grano"
         )
         print("Login: admin@cadmio.com / admin123")
+        print("Lab:   lab@cadmio.com / lab123")
     except Exception as e:
         db.rollback()
         print(f"Error seed: {e}")
