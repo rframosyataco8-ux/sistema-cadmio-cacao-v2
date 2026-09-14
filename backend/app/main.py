@@ -23,6 +23,20 @@ def migrate_schema():
         for stmt in [
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS permissions TEXT",
+            # Asegurar valor 'lab' en el enum de PostgreSQL (si ya existía sin él)
+            """
+            DO $$ BEGIN
+              IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'userrole') THEN
+                IF NOT EXISTS (
+                  SELECT 1 FROM pg_enum e
+                  JOIN pg_type t ON t.oid = e.enumtypid
+                  WHERE t.typname = 'userrole' AND e.enumlabel = 'lab'
+                ) THEN
+                  ALTER TYPE userrole ADD VALUE 'lab';
+                END IF;
+              END IF;
+            END $$;
+            """,
         ]:
             try:
                 conn.execute(text(stmt))
@@ -50,6 +64,26 @@ def seed_admin():
         elif admin.email == "admin@cadmio.local":
             admin.email = "admin@cadmio.com"
             db.commit()
+
+        # Usuario laboratorio (flujo pendientes)
+        lab = db.query(User).filter(User.email == "lab@cadmio.com").first()
+        if not lab:
+            from app.models.user import LAB_PERMISSIONS
+            lab_user = User(
+                email="lab@cadmio.com",
+                full_name="Personal de Laboratorio",
+                hashed_password=get_password_hash("lab123"),
+                role=UserRole.LAB,
+                is_active=True,
+            )
+            if hasattr(lab_user, "set_permissions"):
+                lab_user.set_permissions(LAB_PERMISSIONS)
+            else:
+                import json
+                lab_user.permissions = json.dumps(LAB_PERMISSIONS)
+            db.add(lab_user)
+            db.commit()
+            print("Usuario lab creado: lab@cadmio.com / lab123")
     finally:
         db.close()
 
