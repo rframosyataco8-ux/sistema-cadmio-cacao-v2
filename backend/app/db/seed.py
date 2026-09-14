@@ -104,7 +104,7 @@ def seed():
                 email="admin@cadmio.com",
                 full_name="Administrador",
                 hashed_password=get_password_hash("admin123"),
-                role=UserRole.ADMIN.value if hasattr(UserRole.ADMIN, "value") else UserRole.ADMIN,
+                role=getattr(UserRole.ADMIN, "value", UserRole.ADMIN),
             ))
         elif admin.email == "admin@cadmio.local":
             admin.email = "admin@cadmio.com"
@@ -116,7 +116,7 @@ def seed():
                 email="lab@cadmio.com",
                 full_name="Personal de Laboratorio",
                 hashed_password=get_password_hash("lab123"),
-                role=UserRole.LAB.value if hasattr(UserRole.LAB, "value") else UserRole.LAB,
+                role=getattr(UserRole.LAB, "value", UserRole.LAB),
             )
             lab_user.set_permissions(LAB_PERMISSIONS)
             db.add(lab_user)
@@ -236,6 +236,7 @@ def seed():
                 sample_weight_g=row.get("weight_g"),
                 observation=row.get("obs"),
                 send_date=send_d,
+                is_organic=bool(row.get("is_organic", False)),
             ))
             n_grain += 1
 
