@@ -37,7 +37,7 @@ def migrate_schema():
                     ALTER COLUMN role TYPE VARCHAR(20)
                     USING lower(role::text);
                 EXCEPTION WHEN others THEN
-                  -- ya es varchar u otro tipo compatible
+                  # ya es varchar u otro tipo compatible
                   NULL;
                 END;
                 UPDATE users SET role = lower(role) WHERE role IS NOT NULL AND role <> lower(role);
@@ -77,7 +77,6 @@ def seed_admin():
         for acc in accounts:
             u = db.query(User).filter(User.email == acc["email"]).first()
             if not u:
-                # también migrar email antiguo del admin
                 if acc["email"] == "admin@cadmio.com":
                     u = db.query(User).filter(User.email == "admin@cadmio.local").first()
                     if u:
@@ -93,7 +92,6 @@ def seed_admin():
                     )
                     db.add(u)
                     print(f"Usuario creado: {acc['email']}")
-            # siempre alinear password/rol/activo (evita BD inconsistente)
             u.full_name = acc["full_name"]
             u.hashed_password = get_password_hash(acc["password"])
             u.role = acc["role"]
@@ -114,6 +112,23 @@ async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     migrate_schema()
     seed_admin()
+    # Si no hay muestras, carga datos reales del Excel (idempotente)
+    try:
+        from app.models.sample import SampleLot, SampleGrain
+        db = SessionLocal()
+        try:
+            n_lot = db.query(SampleLot).count()
+            n_grain = db.query(SampleGrain).count()
+        finally:
+            db.close()
+        if n_lot == 0 and n_grain == 0:
+            print("BD vacía: ejecutando seed de datos reales...")
+            from app.db.seed import seed as seed_real_data
+            seed_real_data()
+        else:
+            print(f"Datos existentes: {n_lot} muestras lote, {n_grain} grano")
+    except Exception as e:
+        print(f"Nota auto-seed: {e}")
     yield
 
 
