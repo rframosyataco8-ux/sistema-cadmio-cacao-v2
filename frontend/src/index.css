@@ -529,7 +529,7 @@ table thead th {
 .login-spinner {
   width: 1.25rem;
   height: 1.25rem;
-  border: 2.5px solid rgba(255, 255, 255, neutral);
+  border: 2.5px solid rgba(255, 255, 255, 0.35);
   border-top-color: #fff;
   border-radius: 50%;
   animation: login-spin 0.65s linear infinite;
