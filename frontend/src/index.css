@@ -203,8 +203,10 @@ table thead th {
   min-width: 0;
   color: #fff;
   overflow: hidden;
+  flex-shrink: 0;
 }
-@media (min-width: 1024px) {
+/* Split layout desde tablet landscape / desktop */
+@media (min-width: 900px) {
   .login-left { display: block; }
 }
 
@@ -221,8 +223,8 @@ table thead th {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(125deg, rgba(5, 35, 85, 0.92) 0%, rgba(8, 50, 120, 0.82) 40%, rgba(22, 119, 242, 0.55) 100%),
-    radial-gradient(ellipse at 25% 15%, rgba(30, 140, 255, 0.28) 0%, transparent 50%);
+    linear-gradient(115deg, rgba(4, 28, 72, 0.94) 0%, rgba(8, 48, 115, 0.88) 38%, rgba(15, 90, 200, 0.55) 72%, rgba(22, 119, 242, 0.35) 100%),
+    radial-gradient(ellipse at 70% 40%, rgba(255, 255, 255, 0.06) 0%, transparent 45%);
 }
 
 .login-left-content {
@@ -527,7 +529,7 @@ table thead th {
 .login-spinner {
   width: 1.25rem;
   height: 1.25rem;
-  border: 2.5px solid rgba(255, 255, 255, 0.35);
+  border: 2.5px solid rgba(255, 255, 255, neutral);
   border-top-color: #fff;
   border-radius: 50%;
   animation: login-spin 0.65s linear infinite;
@@ -567,7 +569,7 @@ table thead th {
   transform: rotate(-25deg);
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 899px) {
   .login-right {
     padding-top: 5rem;
   }
