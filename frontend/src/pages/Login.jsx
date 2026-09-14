@@ -106,7 +106,7 @@ export default function Login({ onLogin }) {
 
           <footer className="login-left-foot">
             <span className="login-left-line" />
-            <span>AGRICULTURA SEGURA · CACAO DE CALIDAD</span>
+            <span>RESULTADOS EN TIEMPO REAL · ASEGURAMIENTO DE CALIDAD</span>
           </footer>
         </div>
       </aside>
