@@ -1,9 +1,9 @@
 import axios from 'axios'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_URL = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '')
 
 const api = axios.create({
-  baseURL: `${API_URL}/api/v1`,
+  baseURL: API_URL ? `${API_URL}/api/v1` : '/api/v1',
   headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
   timeout: 20000,
   maxContentLength: 2_000_000,
@@ -82,78 +82,71 @@ api.interceptors.response.use(
 async function smartGet(url, config = {}) {
   const key = cacheKey({ method: 'get', url, params: config.params })
   const cached = getCached(key)
-  if (cached) return cached
+  if (cached) return { data: cached }
   if (inflight.has(key)) return inflight.get(key)
-  const promise = api
-    .get(url, config)
-    .then((res) => {
-      setCached(key, res)
-      return res
-    })
-    .finally(() => inflight.delete(key))
-  inflight.set(key, promise)
-  return promise
-}
-
-async function mutating(method, url, data, config) {
-  const res = await api.request({ method, url, data, ...config })
-  invalidateApiCache()
-  return res
+  const p = api.get(url, config).then((res) => {
+    setCached(key, res.data)
+    inflight.delete(key)
+    return res
+  }).catch((e) => {
+    inflight.delete(key)
+    throw e
+  })
+  inflight.set(key, p)
+  return p
 }
 
 export const authApi = {
   login: (email, password) => {
     const form = new URLSearchParams()
-    form.append('username', String(email || '').trim().slice(0, 200))
-    form.append('password', String(password || '').slice(0, 200))
+    form.set('username', email)
+    form.set('password', password)
     return api.post('/auth/login', form, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      timeout: 15000,
     })
   },
-  me: () => smartGet('/auth/me'),
-  updateProfile: (data) => mutating('patch', '/auth/me', data),
-  changePassword: (data) => mutating('post', '/auth/me/password', data),
-  register: (data) => mutating('post', '/auth/register', data),
-  listUsers: () => smartGet('/auth/users'),
-  updateUser: (userId, data) => mutating('patch', `/auth/users/${userId}`, data),
-  setActive: (userId, active) =>
-    mutating('patch', `/auth/users/${userId}/active`, null, { params: { active } }),
+  me: () => api.get('/auth/me'),
+  users: () => api.get('/auth/users'),
+  createUser: (payload) => api.post('/auth/users', payload),
+  updateUser: (id, payload) => api.patch(`/auth/users/${id}`, payload),
+  deleteUser: (id) => api.delete(`/auth/users/${id}`),
 }
 
 export const catalogApi = {
-  products: () => smartGet('/products'),
-  origins: () => smartGet('/origins'),
-  createProduct: (data) => mutating('post', '/products', data),
-  updateProduct: (id, data) => mutating('patch', `/products/${id}`, data),
-  deleteProduct: (id) => mutating('delete', `/products/${id}`),
-  createOrigin: (data) => mutating('post', '/origins', data),
-  updateOrigin: (id, data) => mutating('patch', `/origins/${id}`, data),
-  deleteOrigin: (id) => mutating('delete', `/origins/${id}`),
+  products: () => smartGet('/catalog/products'),
+  createProduct: (payload) => api.post('/catalog/products', payload),
+  updateProduct: (id, payload) => api.patch(`/catalog/products/${id}`, payload),
+  deleteProduct: (id) => api.delete(`/catalog/products/${id}`),
+  origins: () => smartGet('/catalog/origins'),
+  createOrigin: (payload) => api.post('/catalog/origins', payload),
+  updateOrigin: (id, payload) => api.patch(`/catalog/origins/${id}`, payload),
+  deleteOrigin: (id) => api.delete(`/catalog/origins/${id}`),
 }
 
 export const lotsApi = {
-  list: (productId) => smartGet('/lots', { params: { product_id: productId } }),
-  create: (data) => mutating('post', '/lots', data),
+  list: (params) => smartGet('/lots', { params }),
+  create: (payload) => api.post('/lots', payload),
+  update: (id, payload) => api.patch(`/lots/${id}`, payload),
+  remove: (id) => api.delete(`/lots/${id}`),
 }
 
 export const samplesApi = {
   listLot: (params) => smartGet('/samples/lot', { params }),
-  createLot: (data) => mutating('post', '/samples/lot', data),
-  updateLot: (id, data) => mutating('patch', `/samples/lot/${id}`, data),
-  deleteLot: (id) => mutating('delete', `/samples/lot/${id}`),
+  createLot: (payload) => api.post('/samples/lot', payload),
+  updateLot: (id, payload) => api.patch(`/samples/lot/${id}`, payload),
+  deleteLot: (id) => api.delete(`/samples/lot/${id}`),
   listGrain: (params) => smartGet('/samples/grain', { params }),
-  createGrain: (data) => mutating('post', '/samples/grain', data),
-  updateGrain: (id, data) => mutating('patch', `/samples/grain/${id}`, data),
-  deleteGrain: (id) => mutating('delete', `/samples/grain/${id}`),
+  createGrain: (payload) => api.post('/samples/grain', payload),
+  updateGrain: (id, payload) => api.patch(`/samples/grain/${id}`, payload),
+  deleteGrain: (id) => api.delete(`/samples/grain/${id}`),
 }
 
 export const analyticsApi = {
-  kpis: () => smartGet('/analytics/kpis'),
-  byProduct: () => smartGet('/analytics/charts/by-product'),
-  byOriginGrain: () => smartGet('/analytics/charts/by-origin-grain'),
-  trend: (productId) => smartGet('/analytics/charts/trend', { params: { product_id: productId } }),
-  lots: (productId) => smartGet('/analytics/charts/lots', { params: { product_id: productId } }),
+  summary: (params) => smartGet('/analytics/summary', { params }),
+  byProduct: (params) => smartGet('/analytics/by-product', { params }),
+  byOrigin: (params) => smartGet('/analytics/by-origin', { params }),
+  timeseries: (params) => smartGet('/analytics/timeseries', { params }),
+  heatmap: (params) => smartGet('/analytics/heatmap', { params }),
 }
 
 export default api
