@@ -250,6 +250,25 @@ def health():
     }
 
 
+@app.post("/api/v1/admin/reseed")
+def admin_reseed():
+    """Fuerza recarga de datos reales (solo entorno local)."""
+    try:
+        from app.db.seed import seed
+        seed()
+        from app.db.session import SessionLocal as SL
+        from app.models.sample import SampleLot, SampleGrain
+        db = SL()
+        try:
+            n_lot = db.query(SampleLot).count()
+            n_grain = db.query(SampleGrain).count()
+        finally:
+            db.close()
+        return {"ok": True, "samples": n_lot, "grain": n_grain}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
 @app.get("/metrics", include_in_schema=False)
 def metrics():
     return metrics_response()
