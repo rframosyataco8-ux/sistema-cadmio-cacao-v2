@@ -25,7 +25,6 @@ def migrate_schema():
         for stmt in [
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS permissions TEXT",
-            # role como VARCHAR: elimina conflictos ADMIN vs admin del enum nativo
             """
             DO $$ BEGIN
               IF EXISTS (
@@ -37,7 +36,6 @@ def migrate_schema():
                     ALTER COLUMN role TYPE VARCHAR(20)
                     USING lower(role::text);
                 EXCEPTION WHEN others THEN
-                  # ya es varchar u otro tipo compatible
                   NULL;
                 END;
                 UPDATE users SET role = lower(role) WHERE role IS NOT NULL AND role <> lower(role);
@@ -112,7 +110,6 @@ async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     migrate_schema()
     seed_admin()
-    # Si no hay muestras, carga datos reales del Excel (idempotente)
     try:
         from app.models.sample import SampleLot, SampleGrain
         db = SessionLocal()
