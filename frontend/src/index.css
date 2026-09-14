@@ -205,8 +205,8 @@ table thead th {
   overflow: hidden;
   flex-shrink: 0;
 }
-/* Split layout desde tablet landscape / desktop */
-@media (min-width: 900px) {
+/* Split layout desde tablet / desktop */
+@media (min-width: 768px) {
   .login-left { display: block; }
 }
 
@@ -214,7 +214,7 @@ table thead th {
   position: absolute;
   inset: 0;
   background-size: cover;
-  background-position: center 35%;
+  background-position: 100% center;
   background-repeat: no-repeat;
   transform: scale(1.02);
 }
@@ -375,14 +375,14 @@ table thead th {
 
 .login-card {
   width: 100%;
-  max-width: 420px;
+  max-width: 486px;
   background: #ffffff;
   border-radius: 18px;
   border: 1px solid #dce6f2;
   box-shadow:
     0 4px 6px -1px rgba(15, 40, 80, 0.04),
     0 12px 28px -4px rgba(15, 40, 80, 0.08);
-  padding: 2.4rem 2.15rem 1.9rem;
+  padding: 2.4rem 2.4rem 1.9rem;
   position: relative;
   z-index: 1;
 }
@@ -569,7 +569,7 @@ table thead th {
   transform: rotate(-25deg);
 }
 
-@media (max-width: 899px) {
+@media (max-width: 767px) {
   .login-right {
     padding-top: 5rem;
   }

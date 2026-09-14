@@ -12,6 +12,7 @@ from app.core.middleware import (
     SecurityHeadersMiddleware,
     LimitRequestSizeMiddleware,
 )
+from app.core.metrics import PrometheusMiddleware, metrics_response
 from app.db.session import engine, Base, SessionLocal
 from app.core.security import get_password_hash
 from app.models.user import User, UserRole
@@ -135,6 +136,7 @@ app = FastAPI(
 )
 
 app.add_middleware(GZipMiddleware, minimum_size=500)
+app.add_middleware(PrometheusMiddleware)
 app.add_middleware(LimitRequestSizeMiddleware, max_body_bytes=settings.MAX_REQUEST_BODY_BYTES)
 app.add_middleware(
     RateLimitMiddleware,
@@ -243,3 +245,8 @@ def health():
         "cache": cache_name,
         "version": settings.VERSION,
     }
+
+
+@app.get("/metrics", include_in_schema=False)
+def metrics():
+    return metrics_response()
