@@ -67,7 +67,8 @@ def list_samples_lot(
     if date_to:
         q = q.filter(SampleLot.send_date <= date_to)
     if pending_only:
-        q = q.filter(SampleLot.cadmium_mg_kg.is_(None), SampleLot.has_sample == False)
+        # Pendiente de resultado de laboratorio (sin cadmio reportado)
+        q = q.filter(SampleLot.cadmium_mg_kg.is_(None))
     samples = q.order_by(SampleLot.send_date.desc().nullslast(), SampleLot.id.desc()).all()
     return [_lot_to_out(s) for s in samples]
 
@@ -111,7 +112,7 @@ def update_sample_lot(
     sample_id: int,
     payload: SampleLotUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(UserRole.ADMIN, UserRole.ANALYST)),
+    current_user: User = Depends(require_roles(UserRole.ADMIN, UserRole.ANALYST, UserRole.LAB)),
 ):
     s = (
         db.query(SampleLot)
@@ -125,6 +126,10 @@ def update_sample_lot(
     if not s:
         raise HTTPException(404, "Muestra no encontrada")
     data = payload.model_dump(exclude_unset=True)
+    # Rol lab: solo puede completar resultados, no alterar envío/productor
+    if current_user.role == UserRole.LAB:
+        allowed = {"cadmium_mg_kg", "pesticides", "observation", "analysis_date", "lab_name", "sample_weight_g", "has_sample"}
+        data = {k: v for k, v in data.items() if k in allowed}
     for k, v in data.items():
         setattr(s, k, v)
     if "cadmium_mg_kg" in data and data["cadmium_mg_kg"] is not None:
