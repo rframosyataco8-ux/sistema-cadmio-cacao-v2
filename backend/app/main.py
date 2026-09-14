@@ -66,24 +66,28 @@ def seed_admin():
             db.commit()
 
         # Usuario laboratorio (flujo pendientes)
-        lab = db.query(User).filter(User.email == "lab@cadmio.com").first()
-        if not lab:
-            from app.models.user import LAB_PERMISSIONS
-            lab_user = User(
-                email="lab@cadmio.com",
-                full_name="Personal de Laboratorio",
-                hashed_password=get_password_hash("lab123"),
-                role=UserRole.LAB,
-                is_active=True,
-            )
-            if hasattr(lab_user, "set_permissions"):
-                lab_user.set_permissions(LAB_PERMISSIONS)
-            else:
+        try:
+            lab = db.query(User).filter(User.email == "lab@cadmio.com").first()
+            if not lab:
+                from app.models.user import LAB_PERMISSIONS
                 import json
-                lab_user.permissions = json.dumps(LAB_PERMISSIONS)
-            db.add(lab_user)
-            db.commit()
-            print("Usuario lab creado: lab@cadmio.com / lab123")
+                lab_user = User(
+                    email="lab@cadmio.com",
+                    full_name="Personal de Laboratorio",
+                    hashed_password=get_password_hash("lab123"),
+                    role=UserRole.LAB,
+                    is_active=True,
+                    permissions=json.dumps(LAB_PERMISSIONS),
+                )
+                db.add(lab_user)
+                db.commit()
+                print("Usuario lab creado: lab@cadmio.com / lab123")
+        except Exception as lab_err:
+            db.rollback()
+            print(f"seed lab (no bloqueante): {lab_err}")
+    except Exception as e:
+        db.rollback()
+        print(f"seed_admin error (no bloqueante): {e}")
     finally:
         db.close()
 

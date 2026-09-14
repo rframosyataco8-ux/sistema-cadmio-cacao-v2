@@ -42,7 +42,15 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
-    role: Mapped[UserRole] = mapped_column(SAEnum(UserRole), default=UserRole.VIEWER, nullable=False)
+    role: Mapped[UserRole] = mapped_column(
+        SAEnum(
+            UserRole,
+            name="userrole",
+            values_callable=lambda enum_cls: [e.value for e in enum_cls],
+        ),
+        default=UserRole.VIEWER,
+        nullable=False,
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     avatar: Mapped[str | None] = mapped_column(Text, nullable=True)
     permissions: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON
@@ -73,20 +81,17 @@ class User(Base):
                     merged["lab_pending"] = True
                     return merged
                 except Exception:
-                    pass
+                    return dict(LAB_PERMISSIONS)
             return dict(LAB_PERMISSIONS)
-        if not self.permissions:
-            base = dict(DEFAULT_PERMISSIONS)
-            if self.role == UserRole.ANALYST:
-                base["can_create_samples"] = True
-            return base
-        try:
-            data = json.loads(self.permissions)
-            merged = dict(DEFAULT_PERMISSIONS)
-            merged.update(data)
-            return merged
-        except Exception:
-            return dict(DEFAULT_PERMISSIONS)
+        if self.permissions:
+            try:
+                data = json.loads(self.permissions)
+                merged = dict(DEFAULT_PERMISSIONS)
+                merged.update(data)
+                return merged
+            except Exception:
+                pass
+        return dict(DEFAULT_PERMISSIONS)
 
-    def set_permissions(self, data: dict):
-        self.permissions = json.dumps(data)
+    def set_permissions(self, perms: dict) -> None:
+        self.permissions = json.dumps(perms or {})
