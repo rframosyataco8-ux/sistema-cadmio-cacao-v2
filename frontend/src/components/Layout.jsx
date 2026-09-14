@@ -17,9 +17,10 @@ import {
   Info,
   Moon,
   Bug,
+  ClipboardList,
 } from 'lucide-react'
 import SettingsModal from './SettingsModal'
-import { canAccess } from '../lib/permissions'
+import { canAccess, isLabRole } from '../lib/permissions'
 
 export default function Layout({ user, setUser }) {
   const navigate = useNavigate()
@@ -38,6 +39,8 @@ export default function Layout({ user, setUser }) {
   const showBehavior = canAccess('behavior', user)
   const showCatalog = canAccess('products_catalog', user)
   const showAnalysis = showResults || showBehavior
+  const showLab = canAccess('lab_pending', user) || isLabRole(user)
+  const labOnly = isLabRole(user)
 
   useEffect(() => {
     const theme = localStorage.getItem('theme')
@@ -129,7 +132,19 @@ export default function Layout({ user, setUser }) {
         </div>
 
         <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto overflow-x-hidden">
-          {showDash && (
+          {showLab && (
+            <NavLink
+              to="/lab/pendientes"
+              title="Pendientes laboratorio"
+              className={linkClass}
+              style={({ isActive }) => (!isActive ? { color: 'var(--muted)' } : undefined)}
+            >
+              <ClipboardList className="w-5 h-5 shrink-0" />
+              {!collapsed && 'Pendientes lab'}
+            </NavLink>
+          )}
+
+          {showDash && !labOnly && (
             <NavLink
               to="/"
               end
@@ -142,7 +157,7 @@ export default function Layout({ user, setUser }) {
             </NavLink>
           )}
 
-          {showAnalysis && (
+          {showAnalysis && !labOnly && (
             <div>
               <button
                 type="button"
@@ -207,7 +222,7 @@ export default function Layout({ user, setUser }) {
             </div>
           )}
 
-          {showCatalog && (
+          {showCatalog && !labOnly && (
             <NavLink
               to="/products"
               title="Productos & Orígenes"
@@ -246,49 +261,25 @@ export default function Layout({ user, setUser }) {
                     Configuración
                   </button>
                 )}
-                <button
-                  type="button"
-                  onClick={() => openSettings('cuenta')}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:opacity-80"
-                  style={{ color: 'var(--text)' }}
-                >
+                <button type="button" onClick={() => openSettings('cuenta')} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:opacity-80" style={{ color: 'var(--text)' }}>
                   <User className="w-4 h-4" style={{ color: 'var(--muted)' }} />
                   Cuenta
                 </button>
-                <button
-                  type="button"
-                  onClick={() => openSettings('apariencia')}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:opacity-80"
-                  style={{ color: 'var(--text)' }}
-                >
+                <button type="button" onClick={() => openSettings('apariencia')} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:opacity-80" style={{ color: 'var(--text)' }}>
                   <Moon className="w-4 h-4" style={{ color: 'var(--muted)' }} />
                   Apariencia
                 </button>
-                <button
-                  type="button"
-                  onClick={() => openSettings('ayuda')}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:opacity-80"
-                  style={{ color: 'var(--text)' }}
-                >
+                <button type="button" onClick={() => openSettings('ayuda')} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:opacity-80" style={{ color: 'var(--text)' }}>
                   <HelpCircle className="w-4 h-4" style={{ color: 'var(--muted)' }} />
                   Ayuda
                 </button>
-                <button
-                  type="button"
-                  onClick={() => openSettings('acerca')}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:opacity-80"
-                  style={{ color: 'var(--text)' }}
-                >
+                <button type="button" onClick={() => openSettings('acerca')} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm hover:opacity-80" style={{ color: 'var(--text)' }}>
                   <Info className="w-4 h-4" style={{ color: 'var(--muted)' }} />
                   Acerca del sistema
                 </button>
               </div>
               <div className="border-t py-1" style={{ borderColor: 'var(--border)' }}>
-                <button
-                  type="button"
-                  onClick={logout}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:opacity-80"
-                >
+                <button type="button" onClick={logout} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:opacity-80">
                   <LogOut className="w-4 h-4" />
                   Cerrar sesión
                 </button>
@@ -319,10 +310,7 @@ export default function Layout({ user, setUser }) {
                     {user?.email}
                   </p>
                 </div>
-                <ChevronDown
-                  className={`w-4 h-4 shrink-0 transition-transform ${menuOpen ? 'rotate-180' : ''}`}
-                  style={{ color: 'var(--muted)' }}
-                />
+                <ChevronDown className={`w-4 h-4 shrink-0 transition-transform ${menuOpen ? 'rotate-180' : ''}`} style={{ color: 'var(--muted)' }} />
               </>
             )}
           </button>
@@ -335,13 +323,7 @@ export default function Layout({ user, setUser }) {
         </div>
       </main>
 
-      <SettingsModal
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        user={user}
-        setUser={setUser}
-        initialTab={settingsTab}
-      />
+      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} user={user} setUser={setUser} initialTab={settingsTab} />
     </div>
   )
 }
