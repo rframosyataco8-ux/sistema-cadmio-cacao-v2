@@ -20,100 +20,91 @@ from app.api import auth, catalog, lots, samples, analytics
 
 
 def migrate_schema():
-    """Migraciones ligeras al arranque (idempotentes)."""
+    """Migraciones ligeras e idempotentes. Evita el enum PG problemático."""
     with engine.begin() as conn:
         for stmt in [
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS permissions TEXT",
+            # role como VARCHAR: elimina conflictos ADMIN vs admin del enum nativo
+            """
+            DO $$ BEGIN
+              IF EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'users' AND column_name = 'role'
+              ) THEN
+                BEGIN
+                  ALTER TABLE users
+                    ALTER COLUMN role TYPE VARCHAR(20)
+                    USING lower(role::text);
+                EXCEPTION WHEN others THEN
+                  -- ya es varchar u otro tipo compatible
+                  NULL;
+                END;
+                UPDATE users SET role = lower(role) WHERE role IS NOT NULL AND role <> lower(role);
+              END IF;
+            END $$;
+            """,
         ]:
             try:
                 conn.execute(text(stmt))
             except Exception as e:
                 print(f"migrate: {e}")
 
-    # Asegurar etiquetas en minúsculas del enum userrole
-    for label in ("admin", "analyst", "viewer", "lab"):
-        try:
-            with engine.begin() as conn:
-                conn.execute(text(
-                    f"""
-                    DO $$ BEGIN
-                      IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'userrole') THEN
-                        IF NOT EXISTS (
-                          SELECT 1 FROM pg_enum e
-                          JOIN pg_type t ON t.oid = e.enumtypid
-                          WHERE t.typname = 'userrole' AND e.enumlabel = '{label}'
-                        ) THEN
-                          ALTER TYPE userrole ADD VALUE '{label}';
-                        END IF;
-                      END IF;
-                    END $$;
-                    """
-                ))
-        except Exception as e:
-            print(f"migrate enum add {label}: {e}")
-
-    # Filas antiguas: ADMIN/LAB (nombre) -> admin/lab (valor)
-    for upper, lower in (
-        ("ADMIN", "admin"),
-        ("ANALYST", "analyst"),
-        ("VIEWER", "viewer"),
-        ("LAB", "lab"),
-    ):
-        try:
-            with engine.begin() as conn:
-                conn.execute(text(
-                    f"UPDATE users SET role = '{lower}' WHERE role::text = '{upper}'"
-                ))
-                print(f"migrate role {upper} -> {lower}: ok")
-        except Exception as e:
-            print(f"migrate role {upper}->{lower}: {e}")
-
 
 def seed_admin():
+    """Garantiza admin y lab con contraseñas conocidas (idempotente)."""
+    import json
+    from app.models.user import LAB_PERMISSIONS
+
     db = SessionLocal()
     try:
-        admin = db.query(User).filter(
-            (User.email == "admin@cadmio.com") | (User.email == "admin@cadmio.local")
-        ).first()
-        if not admin:
-            admin = User(
-                email="admin@cadmio.com",
-                full_name="Administrador",
-                hashed_password=get_password_hash("admin123"),
-                role=UserRole.ADMIN,
-                is_active=True,
-            )
-            db.add(admin)
-            db.commit()
-            print("Usuario admin creado: admin@cadmio.com / admin123")
-        elif admin.email == "admin@cadmio.local":
-            admin.email = "admin@cadmio.com"
-            db.commit()
-
-        # Usuario laboratorio (flujo pendientes)
-        try:
-            lab = db.query(User).filter(User.email == "lab@cadmio.com").first()
-            if not lab:
-                from app.models.user import LAB_PERMISSIONS
-                import json
-                lab_user = User(
-                    email="lab@cadmio.com",
-                    full_name="Personal de Laboratorio",
-                    hashed_password=get_password_hash("lab123"),
-                    role=UserRole.LAB,
-                    is_active=True,
-                    permissions=json.dumps(LAB_PERMISSIONS),
-                )
-                db.add(lab_user)
-                db.commit()
-                print("Usuario lab creado: lab@cadmio.com / lab123")
-        except Exception as lab_err:
-            db.rollback()
-            print(f"seed lab (no bloqueante): {lab_err}")
+        accounts = [
+            {
+                "email": "admin@cadmio.com",
+                "full_name": "Administrador",
+                "password": "admin123",
+                "role": UserRole.ADMIN.value,
+                "permissions": None,
+            },
+            {
+                "email": "lab@cadmio.com",
+                "full_name": "Personal de Laboratorio",
+                "password": "lab123",
+                "role": UserRole.LAB.value,
+                "permissions": json.dumps(LAB_PERMISSIONS),
+            },
+        ]
+        for acc in accounts:
+            u = db.query(User).filter(User.email == acc["email"]).first()
+            if not u:
+                # también migrar email antiguo del admin
+                if acc["email"] == "admin@cadmio.com":
+                    u = db.query(User).filter(User.email == "admin@cadmio.local").first()
+                    if u:
+                        u.email = acc["email"]
+                if not u:
+                    u = User(
+                        email=acc["email"],
+                        full_name=acc["full_name"],
+                        hashed_password=get_password_hash(acc["password"]),
+                        role=acc["role"],
+                        is_active=True,
+                        permissions=acc["permissions"],
+                    )
+                    db.add(u)
+                    print(f"Usuario creado: {acc['email']}")
+            # siempre alinear password/rol/activo (evita BD inconsistente)
+            u.full_name = acc["full_name"]
+            u.hashed_password = get_password_hash(acc["password"])
+            u.role = acc["role"]
+            u.is_active = True
+            if acc["permissions"] is not None:
+                u.permissions = acc["permissions"]
+            print(f"Usuario listo: {acc['email']} / rol={acc['role']}")
+        db.commit()
     except Exception as e:
         db.rollback()
-        print(f"seed_admin error (no bloqueante): {e}")
+        print(f"seed_admin error: {e}")
     finally:
         db.close()
 
