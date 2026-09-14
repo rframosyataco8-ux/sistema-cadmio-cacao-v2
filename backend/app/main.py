@@ -19,29 +19,54 @@ from app.api import auth, catalog, lots, samples, analytics
 
 
 def migrate_schema():
+    """Migraciones ligeras al arranque (idempotentes)."""
     with engine.begin() as conn:
         for stmt in [
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS permissions TEXT",
-            # Asegurar valor 'lab' en el enum de PostgreSQL (si ya existía sin él)
-            """
-            DO $$ BEGIN
-              IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'userrole') THEN
-                IF NOT EXISTS (
-                  SELECT 1 FROM pg_enum e
-                  JOIN pg_type t ON t.oid = e.enumtypid
-                  WHERE t.typname = 'userrole' AND e.enumlabel = 'lab'
-                ) THEN
-                  ALTER TYPE userrole ADD VALUE 'lab';
-                END IF;
-              END IF;
-            END $$;
-            """,
         ]:
             try:
                 conn.execute(text(stmt))
             except Exception as e:
                 print(f"migrate: {e}")
+
+    # Asegurar etiquetas en minúsculas del enum userrole
+    for label in ("admin", "analyst", "viewer", "lab"):
+        try:
+            with engine.begin() as conn:
+                conn.execute(text(
+                    f"""
+                    DO $$ BEGIN
+                      IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'userrole') THEN
+                        IF NOT EXISTS (
+                          SELECT 1 FROM pg_enum e
+                          JOIN pg_type t ON t.oid = e.enumtypid
+                          WHERE t.typname = 'userrole' AND e.enumlabel = '{label}'
+                        ) THEN
+                          ALTER TYPE userrole ADD VALUE '{label}';
+                        END IF;
+                      END IF;
+                    END $$;
+                    """
+                ))
+        except Exception as e:
+            print(f"migrate enum add {label}: {e}")
+
+    # Filas antiguas: ADMIN/LAB (nombre) -> admin/lab (valor)
+    for upper, lower in (
+        ("ADMIN", "admin"),
+        ("ANALYST", "analyst"),
+        ("VIEWER", "viewer"),
+        ("LAB", "lab"),
+    ):
+        try:
+            with engine.begin() as conn:
+                conn.execute(text(
+                    f"UPDATE users SET role = '{lower}' WHERE role::text = '{upper}'"
+                ))
+                print(f"migrate role {upper} -> {lower}: ok")
+        except Exception as e:
+            print(f"migrate role {upper}->{lower}: {e}")
 
 
 def seed_admin():
