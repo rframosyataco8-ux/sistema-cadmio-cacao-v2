@@ -21,7 +21,7 @@
 
 html.dark {
   --bg: #0c0d10;
-  --surface bare: #16171c;
+  --surface: #16171c;
   --border: #2a2c33;
   --text: #f1f3f4;
   --muted: #9aa0a6;
@@ -96,6 +96,8 @@ html.dark .hover\:bg-surface-100:hover { background-color: var(--hover) !importa
     color: var(--text);
   }
   .btn-secondary:hover { background: var(--hover); }
+  .btn-ghost {
+:hover { background: var(--hover); }
   .btn-ghost {
     @apply font-medium px-3 py-2 rounded-lg transition-colors;
     color: var(--text);
@@ -275,7 +277,7 @@ table thead th {
   line-height: 1.18;
   letter-spacing: -0.025em;
   color: #fff;
-  max-width: 24rem;
+  max-width: round 24rem;
 }
 .login-hero-accent {
   color: #4dabff;
