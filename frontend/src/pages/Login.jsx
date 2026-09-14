@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { authApi } from '../lib/api'
+import { isLabRole } from '../lib/permissions'
 import {
   FlaskConical,
   Lock,
@@ -28,7 +29,7 @@ export default function Login({ onLogin }) {
       localStorage.setItem('token', data.access_token)
       localStorage.setItem('user', JSON.stringify(data.user))
       if (typeof onLogin === 'function') onLogin(data.user)
-      nav('/')
+      nav(isLabRole(data.user) ? '/lab/pendientes' : '/')
     } catch (err) {
       setError(err.userMessage || err.response?.data?.detail || 'Credenciales incorrectas')
     } finally {
@@ -38,7 +39,6 @@ export default function Login({ onLogin }) {
 
   return (
     <div className="login-page">
-      {/* ——— PANEL IZQUIERDO ——— */}
       <aside className="login-left">
         <div
           className="login-left-bg"
@@ -48,7 +48,6 @@ export default function Login({ onLogin }) {
         <div className="login-left-overlay" aria-hidden />
 
         <div className="login-left-content">
-          {/* Identidad */}
           <header className="login-brand">
             <div className="login-brand-icon">
               <FlaskConical className="w-5 h-5 text-white" strokeWidth={2.25} />
@@ -62,7 +61,6 @@ export default function Login({ onLogin }) {
             </div>
           </header>
 
-          {/* Título principal */}
           <h1 className="login-hero-title">
             Control de cadmio y
             <br />
@@ -77,7 +75,6 @@ export default function Login({ onLogin }) {
             Visualiza tendencias y toma decisiones con datos reales.
           </p>
 
-          {/* Features */}
           <div className="login-features">
             <div className="login-feature">
               <div className="login-feature-icon">
@@ -114,7 +111,6 @@ export default function Login({ onLogin }) {
         </div>
       </aside>
 
-      {/* ——— PANEL DERECHO ——— */}
       <main className="login-right">
         <p className="login-right-top">
           <Leaf className="w-3.5 h-3.5 text-emerald-500" strokeWidth={2} />
@@ -198,7 +194,6 @@ export default function Login({ onLogin }) {
           </p>
         </div>
 
-        {/* Decoración inferior derecha */}
         <div className="login-deco" aria-hidden>
           <Leaf className="login-deco-leaf" />
         </div>
