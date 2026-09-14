@@ -47,9 +47,14 @@ def register(
     if exists:
         raise HTTPException(status_code=400, detail="El email ya está registrado")
 
-    perms = payload.permissions.model_dump() if payload.permissions else dict(DEFAULT_PERMISSIONS)
-    if payload.role == UserRole.ANALYST:
-        perms["can_create_samples"] = True
+    from app.models.user import LAB_PERMISSIONS
+    if payload.role == UserRole.LAB:
+        perms = payload.permissions.model_dump() if payload.permissions else dict(LAB_PERMISSIONS)
+        perms["lab_pending"] = True
+    else:
+        perms = payload.permissions.model_dump() if payload.permissions else dict(DEFAULT_PERMISSIONS)
+        if payload.role == UserRole.ANALYST:
+            perms["can_create_samples"] = True
 
     user = User(
         email=payload.email,
