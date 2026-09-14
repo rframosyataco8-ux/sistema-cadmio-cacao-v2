@@ -9,6 +9,7 @@ class PermissionsOut(BaseModel):
     behavior: bool = True
     products_catalog: bool = True
     can_create_samples: bool = False
+    lab_pending: bool = False
     products: list[str] = Field(default_factory=list)  # keys; vacío = todos
 
 

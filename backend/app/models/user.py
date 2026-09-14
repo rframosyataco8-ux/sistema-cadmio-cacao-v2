@@ -10,6 +10,7 @@ class UserRole(str, enum.Enum):
     ADMIN = "admin"
     ANALYST = "analyst"
     VIEWER = "viewer"
+    LAB = "lab"
 
 
 # Permisos por defecto (acceso completo excepto admin)
@@ -19,7 +20,18 @@ DEFAULT_PERMISSIONS = {
     "behavior": True,
     "products_catalog": True,
     "can_create_samples": False,
+    "lab_pending": False,
     "products": [],  # vacío = todos los productos
+}
+
+LAB_PERMISSIONS = {
+    "dashboard": False,
+    "results": False,
+    "behavior": False,
+    "products_catalog": False,
+    "can_create_samples": False,
+    "lab_pending": True,
+    "products": [],
 }
 
 
@@ -49,8 +61,20 @@ class User(Base):
                 "behavior": True,
                 "products_catalog": True,
                 "can_create_samples": True,
+                "lab_pending": True,
                 "products": [],
             }
+        if self.role == UserRole.LAB:
+            if self.permissions:
+                try:
+                    data = json.loads(self.permissions)
+                    merged = dict(LAB_PERMISSIONS)
+                    merged.update(data)
+                    merged["lab_pending"] = True
+                    return merged
+                except Exception:
+                    pass
+            return dict(LAB_PERMISSIONS)
         if not self.permissions:
             base = dict(DEFAULT_PERMISSIONS)
             if self.role == UserRole.ANALYST:

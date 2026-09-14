@@ -7,9 +7,20 @@ import SamplesLot from './pages/SamplesLot'
 import SamplesPesticides from './pages/SamplesPesticides'
 import BehaviorAnalysis from './pages/BehaviorAnalysis'
 import Products from './pages/Products'
+import LabPending from './pages/LabPending'
+import { isLabRole, canAccess } from './lib/permissions'
 
 function PrivateRoute({ children }) {
   return localStorage.getItem('token') ? children : <Navigate to="/login" replace />
+}
+
+function HomeRedirect({ user }) {
+  if (isLabRole(user) || canAccess('lab_pending', user)) {
+    if (isLabRole(user)) return <Navigate to="/lab/pendientes" replace />
+  }
+  if (canAccess('dashboard', user)) return <Dashboard />
+  if (canAccess('lab_pending', user)) return <Navigate to="/lab/pendientes" replace />
+  return <Navigate to="/lab/pendientes" replace />
 }
 
 export default function App() {
@@ -37,11 +48,12 @@ export default function App() {
           </PrivateRoute>
         }
       >
-        <Route index element={<Dashboard />} />
+        <Route index element={<HomeRedirect user={user} />} />
         <Route path="samples/lot" element={<SamplesLot />} />
         <Route path="samples/plaguicidas" element={<SamplesPesticides />} />
         <Route path="analisis/comportamiento" element={<BehaviorAnalysis />} />
         <Route path="products" element={<Products />} />
+        <Route path="lab/pendientes" element={<LabPending />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

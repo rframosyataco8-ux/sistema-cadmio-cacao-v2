@@ -24,8 +24,22 @@ export function getPerms(user = getUser()) {
       behavior: true,
       products_catalog: true,
       can_create_samples: true,
+      lab_pending: true,
       products: [],
     }
+  }
+  if (user?.role === 'lab') {
+    return (
+      user?.permissions || {
+        dashboard: false,
+        results: false,
+        behavior: false,
+        products_catalog: false,
+        can_create_samples: false,
+        lab_pending: true,
+        products: [],
+      }
+    )
   }
   return (
     user?.permissions || {
@@ -34,6 +48,7 @@ export function getPerms(user = getUser()) {
       behavior: true,
       products_catalog: true,
       can_create_samples: false,
+      lab_pending: false,
       products: [],
     }
   )
@@ -49,4 +64,8 @@ export function canSeeProduct(productKey, user = getUser()) {
 export function canAccess(section, user = getUser()) {
   const p = getPerms(user)
   return !!p[section]
+}
+
+export function isLabRole(user = getUser()) {
+  return user?.role === 'lab'
 }
