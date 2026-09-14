@@ -38,6 +38,9 @@ def load_real_data():
     grain = []
     if grain_path.exists():
         grain = json.loads(grain_path.read_text(encoding="utf-8"))
+    # Fallback: archivo alternativo con muestras de grano
+    if not grain and (base / "real_grain_samples.json").exists():
+        grain = json.loads((base / "real_grain_samples.json").read_text(encoding="utf-8"))
     return {"lots": lots, "grain": grain}
 
 
@@ -101,7 +104,7 @@ def seed():
                 email="admin@cadmio.com",
                 full_name="Administrador",
                 hashed_password=get_password_hash("admin123"),
-                role=UserRole.ADMIN,
+                role=UserRole.ADMIN.value if hasattr(UserRole.ADMIN, "value") else UserRole.ADMIN,
             ))
         elif admin.email == "admin@cadmio.local":
             admin.email = "admin@cadmio.com"
@@ -113,7 +116,7 @@ def seed():
                 email="lab@cadmio.com",
                 full_name="Personal de Laboratorio",
                 hashed_password=get_password_hash("lab123"),
-                role=UserRole.LAB,
+                role=UserRole.LAB.value if hasattr(UserRole.LAB, "value") else UserRole.LAB,
             )
             lab_user.set_permissions(LAB_PERMISSIONS)
             db.add(lab_user)
