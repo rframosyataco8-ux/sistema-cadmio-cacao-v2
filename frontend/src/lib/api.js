@@ -142,11 +142,13 @@ export const samplesApi = {
 }
 
 export const analyticsApi = {
-  summary: (params) => smartGet('/analytics/summary', { params }),
-  byProduct: (params) => smartGet('/analytics/by-product', { params }),
-  byOrigin: (params) => smartGet('/analytics/by-origin', { params }),
-  timeseries: (params) => smartGet('/analytics/timeseries', { params }),
-  heatmap: (params) => smartGet('/analytics/heatmap', { params }),
+  kpis: () => smartGet('/analytics/kpis'),
+  byProduct: () => smartGet('/analytics/charts/by-product'),
+  byOriginGrain: () => smartGet('/analytics/charts/by-origin-grain'),
+  byOrigin: () => smartGet('/analytics/charts/by-origin-grain'),
+  trend: (params) => smartGet('/analytics/charts/trend', { params }),
+  lots: (params) => smartGet('/analytics/charts/lots', { params }),
+  grainTrend: (params) => smartGet('/analytics/charts/grain-trend', { params }),
 }
 
 export default api
