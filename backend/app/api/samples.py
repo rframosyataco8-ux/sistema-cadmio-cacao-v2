@@ -66,6 +66,9 @@ def list_samples_lot(
         q = q.filter(SampleLot.send_date >= date_from)
     if date_to:
         q = q.filter(SampleLot.send_date <= date_to)
+    # Rol lab: solo ve lotes pendientes de resultado
+    if current_user.role == UserRole.LAB:
+        pending_only = True
     if pending_only:
         # Pendiente de resultado de laboratorio (sin cadmio reportado)
         q = q.filter(SampleLot.cadmium_mg_kg.is_(None))
