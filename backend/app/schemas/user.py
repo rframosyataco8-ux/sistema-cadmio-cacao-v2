@@ -36,11 +36,16 @@ class UserOut(BaseModel):
 
     @classmethod
     def from_user(cls, user):
+        raw = str(getattr(user, "role", "viewer") or "viewer").lower()
+        try:
+            role = UserRole(raw)
+        except ValueError:
+            role = UserRole.VIEWER
         return cls(
             id=user.id,
             email=user.email,
             full_name=user.full_name,
-            role=user.role,
+            role=role,
             is_active=user.is_active,
             avatar=user.avatar,
             permissions=PermissionsOut(**user.get_permissions()),

@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import String, Boolean, DateTime, Enum as SAEnum, Text
+from sqlalchemy import String, Boolean, DateTime, Text
 from sqlalchemy.orm import Mapped, mapped_column
 import enum
 import json
@@ -42,15 +42,8 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
-    role: Mapped[UserRole] = mapped_column(
-        SAEnum(
-            UserRole,
-            name="userrole",
-            values_callable=lambda enum_cls: [e.value for e in enum_cls],
-        ),
-        default=UserRole.VIEWER,
-        nullable=False,
-    )
+    # VARCHAR (no enum PG): evita fallos ADMIN vs admin entre versiones
+    role: Mapped[str] = mapped_column(String(20), default=UserRole.VIEWER.value, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     avatar: Mapped[str | None] = mapped_column(Text, nullable=True)
     permissions: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON
@@ -62,7 +55,8 @@ class User(Base):
     )
 
     def get_permissions(self) -> dict:
-        if self.role == UserRole.ADMIN:
+        role = str(self.role or "").lower()
+        if role == UserRole.ADMIN.value:
             return {
                 "dashboard": True,
                 "results": True,
@@ -72,7 +66,7 @@ class User(Base):
                 "lab_pending": True,
                 "products": [],
             }
-        if self.role == UserRole.LAB:
+        if role == UserRole.LAB.value:
             if self.permissions:
                 try:
                     data = json.loads(self.permissions)
