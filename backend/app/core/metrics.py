@@ -4,7 +4,15 @@ from __future__ import annotations
 import time
 from typing import Callable
 
-from prometheus_client import Counter, Histogram, Gauge, Info, generate_latest, CONTENT_TYPE_LATEST, REGISTRY
+from prometheus_client import (
+    Counter,
+    Histogram,
+    Gauge,
+    Info,
+    generate_latest,
+    CONTENT_TYPE_LATEST,
+    REGISTRY,
+)
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
@@ -24,6 +32,12 @@ HTTP_IN_PROGRESS = Gauge(
     "cadmio_http_requests_in_progress",
     "Peticiones en curso",
 )
+CACHE_HITS = Gauge("cadmio_cache_hits_total", "Aciertos de caché (acumulado)")
+CACHE_MISSES = Gauge("cadmio_cache_misses_total", "Fallos de caché (acumulado)")
+CACHE_HIT_RATE = Gauge("cadmio_cache_hit_rate", "Tasa de acierto de caché (0-1)")
+CACHE_ENTRIES = Gauge("cadmio_cache_entries", "Entradas aproximadas en caché")
+DB_UP = Gauge("cadmio_db_up", "1 si la base de datos responde")
+REDIS_UP = Gauge("cadmio_redis_up", "1 si Redis es el backend de caché")
 
 APP_INFO = Info("cadmio_app", "Información de la aplicación")
 
@@ -61,12 +75,27 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
             HTTP_LATENCY.labels(method=method, path=label_path).observe(elapsed)
 
 
-def metrics_response() -> Response:
+def _refresh_cache_gauges() -> None:
     try:
         from app.core.cache import analytics_cache
         from app.core.config import settings
+        from sqlalchemy import text
+        from app.db.session import engine
 
         snap = analytics_cache.stats.snapshot()
+        CACHE_HITS.set(snap.get("hits", 0))
+        CACHE_MISSES.set(snap.get("misses", 0))
+        CACHE_HIT_RATE.set(snap.get("hit_rate", 0))
+        CACHE_ENTRIES.set(getattr(analytics_cache._backend, "size", lambda: 0)())
+        REDIS_UP.set(1 if analytics_cache.backend_name == "redis" else 0)
+
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            DB_UP.set(1)
+        except Exception:
+            DB_UP.set(0)
+
         APP_INFO.info(
             {
                 "version": settings.VERSION,
@@ -76,5 +105,9 @@ def metrics_response() -> Response:
         )
     except Exception:
         pass
+
+
+def metrics_response() -> Response:
+    _refresh_cache_gauges()
     data = generate_latest(REGISTRY)
     return Response(content=data, media_type=CONTENT_TYPE_LATEST)

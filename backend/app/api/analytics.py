@@ -5,13 +5,17 @@ from app.models.user import User
 from app.api.deps import get_current_user
 from app.services import analytics as an
 from app.core.cache import analytics_cache
-from app.core.cache_policy import TTL_KPI, TTL_CHART
+from app.core.cache_policy import base_ttl_for_key
 
 router = APIRouter(prefix="/analytics", tags=["Analytics / Gráficos"])
 
 
-def _cached(key: str, factory, ttl: int):
-    return analytics_cache.get_or_set(key, factory, ttl=float(ttl))
+def _cached(key: str, factory):
+    return analytics_cache.get_or_set(key, factory, ttl=None)
+
+
+def _ttl_header(key: str) -> str:
+    return str(base_ttl_for_key(key))
 
 
 @router.get("/kpis")
@@ -20,9 +24,9 @@ def get_kpis(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    response.headers["Cache-Control"] = f"private, max-age={TTL_KPI}"
-    response.headers["X-Cache-TTL"] = str(TTL_KPI)
-    return _cached("kpis", lambda: an.dashboard_kpis(db), TTL_KPI)
+    response.headers["Cache-Control"] = f"private, max-age={_ttl_header('kpis')}"
+    response.headers["X-Cache-TTL"] = _ttl_header("kpis")
+    return _cached("kpis", lambda: an.dashboard_kpis(db))
 
 
 @router.get("/charts/by-product")
@@ -31,8 +35,9 @@ def chart_by_product(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    response.headers["Cache-Control"] = f"private, max-age={TTL_CHART}"
-    return _cached("by-product", lambda: an.chart_cadmium_by_product(db), TTL_CHART)
+    response.headers["Cache-Control"] = f"private, max-age={_ttl_header('by-product')}"
+    response.headers["X-Cache-TTL"] = _ttl_header("by-product")
+    return _cached("by-product", lambda: an.chart_cadmium_by_product(db))
 
 
 @router.get("/charts/by-origin-grain")
@@ -41,8 +46,9 @@ def chart_by_origin(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    response.headers["Cache-Control"] = f"private, max-age={TTL_CHART}"
-    return _cached("by-origin-grain", lambda: an.chart_cadmium_by_origin_grain(db), TTL_CHART)
+    response.headers["Cache-Control"] = f"private, max-age={_ttl_header('by-origin')}"
+    response.headers["X-Cache-TTL"] = _ttl_header("by-origin")
+    return _cached("by-origin-grain", lambda: an.chart_cadmium_by_origin_grain(db))
 
 
 @router.get("/charts/trend")
@@ -52,9 +58,10 @@ def chart_trend(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    response.headers["Cache-Control"] = f"private, max-age={TTL_CHART}"
     key = f"trend:{product_id or 'all'}"
-    return _cached(key, lambda: an.chart_trend_over_time(db, product_id=product_id), TTL_CHART)
+    response.headers["Cache-Control"] = f"private, max-age={_ttl_header(key)}"
+    response.headers["X-Cache-TTL"] = _ttl_header(key)
+    return _cached(key, lambda: an.chart_trend_over_time(db, product_id=product_id))
 
 
 @router.get("/charts/lots")
@@ -64,9 +71,10 @@ def chart_lots(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    response.headers["Cache-Control"] = f"private, max-age={TTL_CHART}"
     key = f"lots:{product_id or 'all'}"
-    return _cached(key, lambda: an.chart_lot_detail(db, product_id=product_id), TTL_CHART)
+    response.headers["Cache-Control"] = f"private, max-age={_ttl_header(key)}"
+    response.headers["X-Cache-TTL"] = _ttl_header(key)
+    return _cached(key, lambda: an.chart_lot_detail(db, product_id=product_id))
 
 
 @router.get("/charts/grain-trend")
@@ -76,6 +84,7 @@ def chart_grain_trend(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    response.headers["Cache-Control"] = f"private, max-age={TTL_CHART}"
     key = f"grain-trend:{origin_id or 'all'}"
-    return _cached(key, lambda: an.chart_grain_trend_by_origin(db, origin_id=origin_id), TTL_CHART)
+    response.headers["Cache-Control"] = f"private, max-age={_ttl_header(key)}"
+    response.headers["X-Cache-TTL"] = _ttl_header(key)
+    return _cached(key, lambda: an.chart_grain_trend_by_origin(db, origin_id=origin_id))
