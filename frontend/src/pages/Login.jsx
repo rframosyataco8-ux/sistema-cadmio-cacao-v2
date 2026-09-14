@@ -9,7 +9,6 @@ import {
   Eye,
   EyeOff,
   Leaf,
-  Shield,
 } from 'lucide-react'
 
 export default function Login({ onLogin }) {
@@ -52,24 +51,18 @@ export default function Login({ onLogin }) {
           {/* Identidad */}
           <header className="login-brand">
             <div className="login-brand-icon">
-              <FlaskConical className="w-5 h-5 text-white" strokeWidth={2} />
+              <FlaskConical className="w-5 h-5 text-white" strokeWidth={2.25} />
             </div>
             <div>
               <p className="login-brand-title">
                 <span className="text-white">Cadmio</span>{' '}
                 <span className="login-brand-accent">Cacao</span>
               </p>
-              <p className="login-brand-sub">Control de cadmio y plaguicidas</p>
+              <p className="login-brand-sub">CONTROL DE CADMIO Y PLAGUICIDAS</p>
             </div>
           </header>
 
-          {/* Badge */}
-          <div className="login-badge">
-            <Shield className="w-3.5 h-3.5" />
-            <span>Sistema de Gestión y Control</span>
-          </div>
-
-          {/* Título */}
+          {/* Título principal */}
           <h1 className="login-hero-title">
             Control de cadmio y
             <br />
@@ -84,7 +77,7 @@ export default function Login({ onLogin }) {
             Visualiza tendencias y toma decisiones con datos reales.
           </p>
 
-          {/* Solo Cadmio + Plaguicidas */}
+          {/* Features */}
           <div className="login-features">
             <div className="login-feature">
               <div className="login-feature-icon">
@@ -124,8 +117,8 @@ export default function Login({ onLogin }) {
       {/* ——— PANEL DERECHO ——— */}
       <main className="login-right">
         <p className="login-right-top">
-          <Leaf className="w-3.5 h-3.5" />
-          Calidad · Seguridad · Futuro
+          <Leaf className="w-3.5 h-3.5 text-emerald-500" strokeWidth={2} />
+          <span>Calidad · Seguridad · Futuro</span>
         </p>
 
         <div className="login-card animate-slide-up">
@@ -139,7 +132,7 @@ export default function Login({ onLogin }) {
           <form onSubmit={submit} className="login-form">
             <div className="login-field">
               <label className="login-label" htmlFor="login-email">
-                Correo
+                CORREO
               </label>
               <div className="login-input-wrap">
                 <Mail className="login-input-icon" />
@@ -151,14 +144,14 @@ export default function Login({ onLogin }) {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   autoComplete="username"
-                  placeholder="correo@empresa.com"
+                  placeholder="admin@cadmio.com"
                 />
               </div>
             </div>
 
             <div className="login-field">
               <label className="login-label" htmlFor="login-pass">
-                Contraseña
+                CONTRASEÑA
               </label>
               <div className="login-input-wrap">
                 <Lock className="login-input-icon" />
@@ -188,11 +181,11 @@ export default function Login({ onLogin }) {
 
             <button type="submit" disabled={loading} className="login-submit">
               {loading ? (
-                'Entrando…'
+                <span className="login-spinner" />
               ) : (
                 <>
-                  <span>Entrar</span>
                   <ArrowRight className="w-4 h-4" />
+                  <span>Entrar</span>
                 </>
               )}
             </button>
@@ -203,6 +196,11 @@ export default function Login({ onLogin }) {
             Sistema interno · Uso autorizado
             <span className="login-foot-line" />
           </p>
+        </div>
+
+        {/* Decoración inferior derecha */}
+        <div className="login-deco" aria-hidden>
+          <Leaf className="login-deco-leaf" />
         </div>
       </main>
     </div>
