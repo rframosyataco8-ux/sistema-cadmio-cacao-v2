@@ -18,6 +18,16 @@ from app.models.sample import SampleLot, SampleGrain
 
 def load_real_data():
     base = Path(__file__).resolve().parent / "data"
+    # 1) Datos embebidos del Excel Lima Cadmio (preferido)
+    try:
+        from app.db.data.embedded_lima import load_embedded_data
+        data = load_embedded_data()
+        if data.get("lots"):
+            print(f"Datos embebidos: {len(data['lots'])} lotes, {len(data.get('grain') or [])} grano")
+            return data
+    except Exception as e:
+        print(f"Nota embedded_lima: {e}")
+
     grain_path = base / "real_grain.json"
     parts = sorted(base.glob("real_lots_part*.json"))
     if parts:
@@ -37,8 +47,12 @@ def load_real_data():
         raise FileNotFoundError("Faltan archivos de lotes en app/db/data")
     grain = []
     if grain_path.exists():
-        grain = json.loads(grain_path.read_text(encoding="utf-8"))
-    # Fallback: archivo alternativo con muestras de grano
+        try:
+            grain = json.loads(grain_path.read_text(encoding="utf-8"))
+            if not isinstance(grain, list):
+                grain = []
+        except Exception:
+            grain = []
     if not grain and (base / "real_grain_samples.json").exists():
         grain = json.loads((base / "real_grain_samples.json").read_text(encoding="utf-8"))
     return {"lots": lots, "grain": grain}
