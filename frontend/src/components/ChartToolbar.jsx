@@ -3,7 +3,7 @@ import { ZoomIn, Move, RotateCcw, Download } from 'lucide-react'
 
 /**
  * Barra minimalista para controlar gráficos Plotly.
- * Se coloca en el encabezado de la tarjeta (no encima del gráfico).
+ * Colocada en el encabezado de la tarjeta (no encima del gráfico).
  */
 export default function ChartToolbar({ graphDiv, filename = 'grafico-cadmio' }) {
   const [mode, setMode] = useState('zoom')
@@ -45,16 +45,11 @@ export default function ChartToolbar({ graphDiv, filename = 'grafico-cadmio' }) 
     }
   }
 
-  const btn =
-    'inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md text-xs font-medium transition-colors select-none'
-  const idle = 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'
-  const active = 'bg-blue-50 text-blue-700'
-
   return (
-    <div className="inline-flex items-center gap-0.5 p-0.5 rounded-lg border border-gray-200 bg-white shadow-sm">
+    <div className="chart-toolbar">
       <button
         type="button"
-        className={`${btn} ${mode === 'zoom' ? active : idle}`}
+        className={`chart-toolbar-btn ${mode === 'zoom' ? 'active' : ''}`}
         onClick={() => setDragMode('zoom')}
         title="Zoom"
       >
@@ -63,19 +58,19 @@ export default function ChartToolbar({ graphDiv, filename = 'grafico-cadmio' }) 
       </button>
       <button
         type="button"
-        className={`${btn} ${mode === 'pan' ? active : idle}`}
+        className={`chart-toolbar-btn ${mode === 'pan' ? 'active' : ''}`}
         onClick={() => setDragMode('pan')}
         title="Mover"
       >
         <Move className="w-3.5 h-3.5" strokeWidth={2} />
         <span className="hidden sm:inline">Mover</span>
       </button>
-      <span className="w-px h-4 bg-gray-200 mx-0.5" />
-      <button type="button" className={`${btn} ${idle}`} onClick={reset} title="Reiniciar vista">
+      <span className="chart-toolbar-sep" />
+      <button type="button" className="chart-toolbar-btn" onClick={reset} title="Reiniciar vista">
         <RotateCcw className="w-3.5 h-3.5" strokeWidth={2} />
         <span className="hidden sm:inline">Reiniciar</span>
       </button>
-      <button type="button" className={`${btn} ${idle}`} onClick={download} title="Descargar PNG">
+      <button type="button" className="chart-toolbar-btn" onClick={download} title="Descargar PNG">
         <Download className="w-3.5 h-3.5" strokeWidth={2} />
         <span className="hidden sm:inline">PNG</span>
       </button>
