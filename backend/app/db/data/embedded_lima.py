@@ -1,8 +1,18 @@
-"""Datos embebidos del Excel Lima Cadmio (generados automáticamente)."""
+"""Datos embebidos del Excel Lima Cadmio."""
+from pathlib import Path
 import json, zlib, base64
 
-_B64 = """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"""
-
 def load_embedded_data():
-    raw = zlib.decompress(base64.b64decode(_B64))
+    base = Path(__file__).resolve().parent
+    parts = []
+    i = 0
+    while True:
+        p = base / f"lima_b64_{i}.txt"
+        if not p.exists():
+            break
+        parts.append(p.read_text(encoding="ascii").strip())
+        i += 1
+    if not parts:
+        raise FileNotFoundError("Faltan lima_b64_*.txt")
+    raw = zlib.decompress(base64.b64decode("".join(parts)))
     return json.loads(raw.decode("utf-8"))
